@@ -5,7 +5,12 @@ import { processMessage } from '../agent/engine'
 export const chatRouter = new Hono()
 
 chatRouter.post('/', authMiddleware, async (c) => {
-  const body = await c.req.json()
+  let body: { message?: unknown }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400)
+  }
   const { message } = body
 
   if (!message || typeof message !== 'string' || message.trim() === '') {

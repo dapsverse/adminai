@@ -30,13 +30,13 @@ export async function setOnboardingStep(
 export function buildOnboardingMessage(fullName: string, businessName: string): string {
   return `Halo, ${fullName}! Selamat datang di AdminAI.
 
-Saya siap membantu kamu mengelola keuangan dan invoice untuk **${businessName}**.
+Saya siap membantu kamu mengelola keuangan dan invoice untuk ${businessName}.
 
 Sebelum mulai, ada 2 hal yang bisa membuat pengalamanmu lebih lengkap:
 
-📱 **Telegram** — Akses saya langsung dari HP, terima notifikasi invoice dan laporan otomatis kapan saja. Ketik "setup telegram" untuk memulai.
+📱 Telegram — Akses saya langsung dari HP, terima notifikasi invoice dan laporan otomatis kapan saja. Ketik "setup telegram" untuk memulai.
 
-📧 **Email** — Saya bisa otomatis mendeteksi notifikasi transfer masuk dan invoice dari supplier. Ketik "connect email" untuk memulai.
+📧 Email — Saya bisa otomatis mendeteksi notifikasi transfer masuk dan invoice dari supplier. Ketik "connect email" untuk memulai.
 
 Atau langsung mulai saja — ketik apa yang ingin kamu catat atau tanyakan seputar keuangan ${businessName}!`
 }
