@@ -2,5 +2,4 @@ node_modules/
 dist/
 .env
 *.local
-drizzle/
 .DS_Store
