@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { authRouter } from './routes/auth'
+import { chatRouter } from './routes/chat'
 
 export const app = new Hono()
 
@@ -11,6 +12,7 @@ app.onError((err, c) => {
 })
 
 app.route('/auth', authRouter)
+app.route('/chat', chatRouter)
 
 app.get('/health', (c) => c.json({ ok: true }))
 
