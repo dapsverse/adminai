@@ -16,13 +16,25 @@ authRouter.post('/register', async (c) => {
     return c.json({ error: 'Missing required fields' }, 400)
   }
 
-  const existing = await db.select().from(users).where(eq(users.email, email)).limit(1)
-  if (existing.length > 0) {
-    return c.json({ error: 'Email already registered' }, 409)
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: 'Invalid email format' }, 400)
+  }
+
+  if (password.length < 8) {
+    return c.json({ error: 'Password must be at least 8 characters' }, 400)
   }
 
   const passwordHash = await hashPassword(password)
-  const [user] = await db.insert(users).values({ email, passwordHash, fullName, businessName }).returning()
+
+  let user
+  try {
+    ;[user] = await db.insert(users).values({ email, passwordHash, fullName, businessName }).returning()
+  } catch (err: any) {
+    if (err.code === '23505') {
+      return c.json({ error: 'Email already registered' }, 409)
+    }
+    throw err
+  }
 
   const token = await signJwt({ userId: user.id, email: user.email })
   const { passwordHash: _, ...safeUser } = user
@@ -32,6 +44,9 @@ authRouter.post('/register', async (c) => {
 
 authRouter.post('/login', async (c) => {
   const { email, password } = await c.req.json()
+  if (!email || !password) {
+    return c.json({ error: 'Missing required fields' }, 400)
+  }
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
   if (!user) return c.json({ error: 'Invalid credentials' }, 401)
