@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, text, integer, bigint,
-  timestamp, jsonb, boolean,
+  timestamp, jsonb, boolean, index,
 } from 'drizzle-orm/pg-core'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -42,7 +42,9 @@ export const transactions = pgTable('transactions', {
   source: transactionSourceEnum('source').default('manual').notNull(),
   date: timestamp('date').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => [
+  index('transactions_user_id_idx').on(table.userId),
+])
 
 export const invoices = pgTable('invoices', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -57,7 +59,9 @@ export const invoices = pgTable('invoices', {
   dueDate: timestamp('due_date'),
   paidAt: timestamp('paid_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => [
+  index('invoices_user_id_idx').on(table.userId),
+])
 
 export const conversationMessages = pgTable('conversation_messages', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -67,7 +71,9 @@ export const conversationMessages = pgTable('conversation_messages', {
   content: text('content'),
   toolCalls: jsonb('tool_calls'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => [
+  index('conversation_messages_user_id_idx').on(table.userId),
+])
 
 export const scheduledReports = pgTable('scheduled_reports', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -77,7 +83,9 @@ export const scheduledReports = pgTable('scheduled_reports', {
   delivery: reportDeliveryEnum('delivery').notNull(),
   lastRunAt: timestamp('last_run_at'),
   nextRunAt: timestamp('next_run_at'),
-})
+}, (table) => [
+  index('scheduled_reports_user_id_idx').on(table.userId),
+])
 
 export const customTools = pgTable('custom_tools', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
@@ -85,13 +93,18 @@ export const customTools = pgTable('custom_tools', {
   description: text('description').notNull(),
   definition: jsonb('definition').notNull().$type<{ steps: Array<{ tool: string; params: Record<string, unknown> }> }>(),
   status: toolStatusEnum('status').default('temporary').notNull(),
-  creatorUserId: text('creator_user_id').notNull().references(() => users.id),
+  creatorUserId: text('creator_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => [
+  index('custom_tools_creator_user_id_idx').on(table.creatorUserId),
+])
 
 export const toolUsageLog = pgTable('tool_usage_log', {
   id: text('id').primaryKey().$defaultFn(() => createId()),
   toolId: text('tool_id').notNull().references(() => customTools.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   usedAt: timestamp('used_at').defaultNow().notNull(),
-})
+}, (table) => [
+  index('tool_usage_log_tool_id_idx').on(table.toolId),
+  index('tool_usage_log_user_id_idx').on(table.userId),
+])
