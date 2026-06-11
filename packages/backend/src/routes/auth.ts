@@ -10,7 +10,8 @@ export const authRouter = new Hono()
 
 authRouter.post('/register', async (c) => {
   const body = await c.req.json()
-  const { email, password, fullName, businessName } = body
+  const { password, fullName, businessName } = body
+  const email = body.email?.toLowerCase().trim()
 
   if (!email || !password || !fullName || !businessName) {
     return c.json({ error: 'Missing required fields' }, 400)
@@ -43,7 +44,9 @@ authRouter.post('/register', async (c) => {
 })
 
 authRouter.post('/login', async (c) => {
-  const { email, password } = await c.req.json()
+  const body = await c.req.json()
+  const email = body.email?.toLowerCase().trim()
+  const { password } = body
   if (!email || !password) {
     return c.json({ error: 'Missing required fields' }, 400)
   }

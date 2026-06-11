@@ -5,6 +5,11 @@ import { authRouter } from './routes/auth'
 
 export const app = new Hono()
 
+app.onError((err, c) => {
+  console.error(err)
+  return c.json({ error: 'Internal server error' }, 500)
+})
+
 app.route('/auth', authRouter)
 
 app.get('/health', (c) => c.json({ ok: true }))
