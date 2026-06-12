@@ -10,6 +10,7 @@ import {
   createReportTask,
   parseTime,
 } from '../lib/report-scheduler'
+import { isEmailConfigured } from '../lib/email'
 
 export const reportsRouter = new Hono()
 
@@ -51,6 +52,12 @@ reportsRouter.post('/reports', authMiddleware, async (c) => {
     }
   }
 
+  if (delivery === 'email' || delivery === 'both') {
+    if (!isEmailConfigured()) {
+      return c.json({ error: 'Email belum dikonfigurasi di server. Hubungi administrator AdminAI.' }, 400)
+    }
+  }
+
   const reportType = type as 'daily' | 'weekly' | 'monthly'
 
   const [existing] = await db
@@ -77,7 +84,7 @@ reportsRouter.post('/reports', authMiddleware, async (c) => {
     })
     .returning()
 
-  const task = createReportTask(report.id, userId, reportType)
+  const task = createReportTask(report.id, userId, reportType, delivery as 'telegram' | 'email' | 'both')
   getReportScheduler().schedule(report.id, cronExpression, task)
 
   return c.json(report, 201)

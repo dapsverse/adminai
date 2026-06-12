@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { app } from '../src/index'
 import { db } from '../src/db'
 import { users, scheduledReports } from '../src/db/schema'
@@ -6,6 +6,9 @@ import { eq } from 'drizzle-orm'
 import { signJwt } from '../src/lib/jwt'
 import { setReportScheduler, initScheduler } from '../src/lib/report-scheduler'
 import { setTelegramClient } from '../src/lib/telegram'
+import { setEmailClient } from '../src/lib/email'
+import type { EmailClient } from '../src/lib/email'
+import { createReportTask } from '../src/lib/report-scheduler'
 import { cleanDb, createTestUser } from './setup'
 import type { ReportScheduler } from '../src/lib/report-scheduler'
 import type { TelegramClient } from '../src/lib/telegram'
@@ -22,6 +25,13 @@ class MockReportScheduler implements ReportScheduler {
   }
 }
 
+class MockEmailClient implements EmailClient {
+  readonly sent: Array<{ to: string; subject: string; text: string }> = []
+  async sendEmail(to: string, subject: string, text: string): Promise<void> {
+    this.sent.push({ to, subject, text })
+  }
+}
+
 function makeMockBot(): TelegramClient {
   return {
     getMe: async () => ({ id: 1, username: 'bot', firstName: 'Bot' }),
@@ -33,6 +43,7 @@ function makeMockBot(): TelegramClient {
 
 let mockScheduler: MockReportScheduler
 let mockBot: TelegramClient
+let mockEmail: MockEmailClient
 
 beforeEach(async () => {
   await cleanDb()
@@ -40,6 +51,12 @@ beforeEach(async () => {
   setReportScheduler(mockScheduler)
   mockBot = makeMockBot()
   setTelegramClient(mockBot)
+  mockEmail = new MockEmailClient()
+  setEmailClient(mockEmail)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 async function createUserAndToken(overrides?: { businessName?: string }) {
@@ -311,5 +328,116 @@ describe('initScheduler', () => {
     const scheduledIds = [...mockScheduler.scheduled.keys()]
     expect(scheduledIds).toContain(inserted[0].id)
     expect(scheduledIds).toContain(inserted[1].id)
+  })
+})
+
+describe('POST /reports — email delivery', () => {
+  it('returns 400 when delivery is email and SMTP not configured', async () => {
+    vi.stubEnv('SMTP_HOST', '')
+    const { token } = await createUserAndToken()
+    const res = await app.request('/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'daily', delivery: 'email', time: '08:00' }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/email belum dikonfigurasi/i)
+  })
+
+  it('creates email-delivery report when SMTP configured', async () => {
+    vi.stubEnv('SMTP_HOST', 'smtp.example.com')
+    vi.stubEnv('SMTP_USER', 'user')
+    vi.stubEnv('SMTP_PASS', 'pass')
+    const { token } = await createUserAndToken()
+    const res = await app.request('/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'daily', delivery: 'email', time: '08:00' }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json() as { delivery: string }
+    expect(body.delivery).toBe('email')
+  })
+
+  it('returns 400 for both delivery when SMTP not configured', async () => {
+    vi.stubEnv('SMTP_HOST', '')
+    const { token, user } = await createUserAndToken()
+    await connectTelegram(user.id)
+    const res = await app.request('/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'daily', delivery: 'both', time: '08:00' }),
+    })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('createReportTask — email delivery', () => {
+  it('sends email when delivery is email', async () => {
+    const { user } = await createUserAndToken()
+    const [inserted] = await db.insert(scheduledReports).values({
+      userId: user.id,
+      type: 'daily',
+      delivery: 'email',
+      cronExpression: '0 8 * * *',
+      nextRunAt: new Date(),
+    }).returning()
+
+    const task = createReportTask(inserted.id, user.id, 'daily', 'email')
+    await task()
+
+    expect(mockEmail.sent).toHaveLength(1)
+    expect(mockEmail.sent[0].to).toBe(user.email)
+    expect(mockEmail.sent[0].subject).toContain('Laporan Harian')
+  })
+
+  it('sends both telegram and email when delivery is both', async () => {
+    const { user } = await createUserAndToken()
+    await connectTelegram(user.id)
+
+    let telegramSent = false
+    setTelegramClient({
+      ...makeMockBot(),
+      sendMessage: async () => { telegramSent = true },
+    })
+
+    const [inserted] = await db.insert(scheduledReports).values({
+      userId: user.id,
+      type: 'daily',
+      delivery: 'both',
+      cronExpression: '0 8 * * *',
+      nextRunAt: new Date(),
+    }).returning()
+
+    const task = createReportTask(inserted.id, user.id, 'daily', 'both')
+    await task()
+
+    expect(telegramSent).toBe(true)
+    expect(mockEmail.sent).toHaveLength(1)
+  })
+
+  it('skips telegram when not connected and delivery is both', async () => {
+    const { user } = await createUserAndToken()
+
+    const [inserted] = await db.insert(scheduledReports).values({
+      userId: user.id,
+      type: 'daily',
+      delivery: 'both',
+      cronExpression: '0 8 * * *',
+      nextRunAt: new Date(),
+    }).returning()
+
+    let telegramCalled = false
+    setTelegramClient({
+      ...makeMockBot(),
+      sendMessage: async () => { telegramCalled = true },
+    })
+
+    const task = createReportTask(inserted.id, user.id, 'daily', 'both')
+    await task()
+
+    expect(telegramCalled).toBe(false)
+    expect(mockEmail.sent).toHaveLength(1)
   })
 })
