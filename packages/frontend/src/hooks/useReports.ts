@@ -28,7 +28,7 @@ export function useReports() {
     load()
   }, [load])
 
-  const deleteReport = async (id: string): Promise<void> => {
+  const deleteReport = useCallback(async (id: string): Promise<void> => {
     setLoading(true)
     setError(null)
     try {
@@ -39,7 +39,7 @@ export function useReports() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   return { reports, loading, error, deleteReport }
 }

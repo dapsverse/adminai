@@ -134,7 +134,7 @@ export function SettingsPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       via {report.delivery}
                       {report.nextRunAt
-                        ? ` · berikutnya ${new Date(report.nextRunAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        ? ` · berikutnya ${new Date(report.nextRunAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                         : ''}
                     </p>
                   </div>
