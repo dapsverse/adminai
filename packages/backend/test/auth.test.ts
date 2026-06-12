@@ -48,6 +48,18 @@ describe('POST /auth/register', () => {
     const res = await post('/auth/register', { email: 'bad@example.com' })
     expect(res.status).toBe(400)
   })
+
+  it('includes telegramConnected: false for newly registered user', async () => {
+    const res = await post('/auth/register', {
+      email: 'tg@example.com',
+      password: 'password123',
+      fullName: 'Citra',
+      businessName: 'Toko Citra',
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json() as { user: { telegramConnected: boolean } }
+    expect(body.user.telegramConnected).toBe(false)
+  })
 })
 
 describe('POST /auth/login', () => {

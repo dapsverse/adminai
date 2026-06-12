@@ -6,6 +6,7 @@ interface User {
   email: string
   fullName: string
   businessName: string
+  telegramConnected?: boolean
 }
 
 interface AuthStore {

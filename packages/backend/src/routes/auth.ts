@@ -19,6 +19,7 @@ function toSafeUser(user: typeof users.$inferSelect) {
     onboardingState: user.onboardingState,
     tier: user.tier,
     createdAt: user.createdAt,
+    telegramConnected: !!user.telegramBotToken,
   }
 }
 
