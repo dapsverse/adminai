@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanDb, createTestUser } from './setup'
 import { createInvoiceTool } from '../src/agent/tools/create-invoice'
 import { listInvoicesTool } from '../src/agent/tools/list-invoices'
+import { markInvoicePaidTool } from '../src/agent/tools/mark-invoice-paid'
 
 beforeEach(() => cleanDb())
 
@@ -144,5 +145,42 @@ describe('list_invoices', () => {
     const rows = result.data as any[]
     expect(rows).toHaveLength(1)
     expect(rows[0].clientName).toBe('Supplier X')
+  })
+})
+
+describe('mark_invoice_paid', () => {
+  it('marks an outgoing invoice as paid and sets paidAt', async () => {
+    const user = await createTestUser()
+    const created = await createInvoiceTool.execute(
+      { direction: 'outgoing', clientName: 'Client A', items: [{ description: 'A', qty: 1, price: 100 }] },
+      user.id
+    )
+    const invoiceId = (created.data as any).id
+
+    const result = await markInvoicePaidTool.execute({ invoiceId }, user.id)
+    expect(result.success).toBe(true)
+    const updated = result.data as any
+    expect(updated.status).toBe('paid')
+    expect(updated.paidAt).toBeTruthy()
+  })
+
+  it('marks an incoming invoice as paid', async () => {
+    const user = await createTestUser()
+    const created = await createInvoiceTool.execute(
+      { direction: 'incoming', clientName: 'Supplier X', items: [{ description: 'B', qty: 1, price: 200 }] },
+      user.id
+    )
+    const invoiceId = (created.data as any).id
+
+    const result = await markInvoicePaidTool.execute({ invoiceId }, user.id)
+    expect(result.success).toBe(true)
+    expect((result.data as any).status).toBe('paid')
+  })
+
+  it('returns error when invoice not found or belongs to another user', async () => {
+    const user = await createTestUser()
+    const result = await markInvoicePaidTool.execute({ invoiceId: 'nonexistent-id' }, user.id)
+    expect(result.success).toBe(false)
+    expect(result.error).toBeTruthy()
   })
 })
