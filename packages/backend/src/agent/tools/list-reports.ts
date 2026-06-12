@@ -12,21 +12,25 @@ export const listReportsTool: Tool = {
   },
 
   async execute(_args, userId): Promise<ToolResult> {
-    const reports = await db
-      .select()
-      .from(scheduledReports)
-      .where(eq(scheduledReports.userId, userId))
+    try {
+      const reports = await db
+        .select()
+        .from(scheduledReports)
+        .where(eq(scheduledReports.userId, userId))
 
-    return {
-      success: true,
-      data: reports.map(r => ({
-        id: r.id,
-        type: r.type,
-        delivery: r.delivery,
-        cronExpression: r.cronExpression,
-        nextRunAt: r.nextRunAt?.toISOString() ?? null,
-        lastRunAt: r.lastRunAt?.toISOString() ?? null,
-      })),
+      return {
+        success: true,
+        data: reports.map(r => ({
+          id: r.id,
+          type: r.type,
+          delivery: r.delivery,
+          cronExpression: r.cronExpression,
+          nextRunAt: r.nextRunAt?.toISOString() ?? null,
+          lastRunAt: r.lastRunAt?.toISOString() ?? null,
+        })),
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   },
 }

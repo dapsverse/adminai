@@ -30,7 +30,8 @@ Panduan penggunaan tools:
 - Semua amount dalam Rupiah (IDR), bilangan bulat
 - Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca
 - Untuk schedule_report: jika tidak disebutkan jam, gunakan 08:00 sebagai default
-- Laporan terjadwal hanya bisa dikirim via Telegram — pastikan Telegram sudah terhubung`.trim()
+- Laporan terjadwal saat ini hanya bisa dikirim via Telegram — pastikan Telegram sudah terhubung
+- Pengiriman via email belum tersedia (akan ditambahkan di versi mendatang)`.trim()
 }
 
 export async function processMessage(

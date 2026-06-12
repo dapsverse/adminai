@@ -38,61 +38,65 @@ export const scheduleReportTool: Tool = {
       return { success: false, error: `Format jam tidak valid: "${timeStr}". Gunakan format HH:MM, contoh: 08:00` }
     }
 
-    const [user] = await db
-      .select({ telegramBotToken: users.telegramBotToken })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    try {
+      const [user] = await db
+        .select({ telegramBotToken: users.telegramBotToken })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
 
-    if (!user?.telegramBotToken) {
-      return { success: false, error: 'Telegram belum terhubung. Minta user untuk menghubungkan Telegram di halaman Pengaturan.' }
-    }
-
-    const [existing] = await db
-      .select({ id: scheduledReports.id })
-      .from(scheduledReports)
-      .where(and(eq(scheduledReports.userId, userId), eq(scheduledReports.type, type)))
-      .limit(1)
-
-    if (existing) {
-      return {
-        success: false,
-        error: `Laporan ${type} sudah terjadwal (ID: ${existing.id}). Gunakan delete_report untuk menghapusnya terlebih dahulu sebelum membuat jadwal baru.`,
+      if (!user?.telegramBotToken) {
+        return { success: false, error: 'Telegram belum terhubung. Hubungkan Telegram di halaman Pengaturan terlebih dahulu.' }
       }
-    }
 
-    const cronExpression = buildCronExpression(type, parsed.hour, parsed.minute)
-    const nextRunAt = calculateNextRun(type, parsed.hour, parsed.minute)
+      const [existing] = await db
+        .select({ id: scheduledReports.id })
+        .from(scheduledReports)
+        .where(and(eq(scheduledReports.userId, userId), eq(scheduledReports.type, type)))
+        .limit(1)
 
-    const [report] = await db
-      .insert(scheduledReports)
-      .values({
-        userId,
-        type,
-        cronExpression,
-        delivery: 'telegram',
-        nextRunAt,
-      })
-      .returning()
+      if (existing) {
+        return {
+          success: false,
+          error: `Laporan ${type} sudah terjadwal (ID: ${existing.id}). Gunakan delete_report untuk menghapusnya terlebih dahulu sebelum membuat jadwal baru.`,
+        }
+      }
 
-    const task = createReportTask(report.id, userId, type)
-    getReportScheduler().schedule(report.id, cronExpression, task)
+      const cronExpression = buildCronExpression(type, parsed.hour, parsed.minute)
+      const nextRunAt = calculateNextRun(type, parsed.hour, parsed.minute)
 
-    const typeLabel: Record<string, string> = {
-      daily: 'harian (setiap hari)',
-      weekly: 'mingguan (setiap Senin)',
-      monthly: 'bulanan (setiap tanggal 1)',
-    }
+      const [report] = await db
+        .insert(scheduledReports)
+        .values({
+          userId,
+          type,
+          cronExpression,
+          delivery: 'telegram',
+          nextRunAt,
+        })
+        .returning()
 
-    return {
-      success: true,
-      data: {
-        id: report.id,
-        type,
-        cronExpression,
-        nextRunAt: nextRunAt.toISOString(),
-        message: `Laporan ${typeLabel[type]} jam ${timeStr} berhasil dijadwalkan via Telegram.`,
-      },
+      const task = createReportTask(report.id, userId, type)
+      getReportScheduler().schedule(report.id, cronExpression, task)
+
+      const typeLabel: Record<string, string> = {
+        daily: 'harian (setiap hari)',
+        weekly: 'mingguan (setiap Senin)',
+        monthly: 'bulanan (setiap tanggal 1)',
+      }
+
+      return {
+        success: true,
+        data: {
+          id: report.id,
+          type,
+          cronExpression,
+          nextRunAt: nextRunAt.toISOString(),
+          message: `Laporan ${typeLabel[type]} jam ${timeStr} berhasil dijadwalkan via Telegram.`,
+        },
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   },
 }

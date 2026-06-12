@@ -21,28 +21,32 @@ export const deleteReportTool: Tool = {
   async execute(args, userId): Promise<ToolResult> {
     const reportId = args.reportId as string
 
-    const [report] = await db
-      .select()
-      .from(scheduledReports)
-      .where(and(eq(scheduledReports.id, reportId), eq(scheduledReports.userId, userId)))
-      .limit(1)
+    try {
+      const [report] = await db
+        .select()
+        .from(scheduledReports)
+        .where(and(eq(scheduledReports.id, reportId), eq(scheduledReports.userId, userId)))
+        .limit(1)
 
-    if (!report) {
-      return { success: false, error: `Laporan dengan ID "${reportId}" tidak ditemukan.` }
-    }
+      if (!report) {
+        return { success: false, error: `Laporan dengan ID "${reportId}" tidak ditemukan.` }
+      }
 
-    getReportScheduler().unschedule(reportId)
-    await db.delete(scheduledReports).where(eq(scheduledReports.id, reportId))
+      getReportScheduler().unschedule(reportId)
+      await db.delete(scheduledReports).where(eq(scheduledReports.id, reportId))
 
-    const typeLabel: Record<string, string> = {
-      daily: 'harian',
-      weekly: 'mingguan',
-      monthly: 'bulanan',
-    }
+      const typeLabel: Record<string, string> = {
+        daily: 'harian',
+        weekly: 'mingguan',
+        monthly: 'bulanan',
+      }
 
-    return {
-      success: true,
-      data: { deleted: true, message: `Laporan ${typeLabel[report.type] ?? report.type} berhasil dihapus.` },
+      return {
+        success: true,
+        data: { deleted: true, message: `Laporan ${typeLabel[report.type] ?? report.type} berhasil dihapus.` },
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
     }
   },
 }
