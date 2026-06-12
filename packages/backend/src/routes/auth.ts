@@ -8,6 +8,20 @@ import { authMiddleware } from '../middleware/auth'
 
 export const authRouter = new Hono()
 
+function toSafeUser(user: typeof users.$inferSelect) {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    businessName: user.businessName,
+    invoiceSenderName: user.invoiceSenderName,
+    emailPollIntervalMinutes: user.emailPollIntervalMinutes,
+    onboardingState: user.onboardingState,
+    tier: user.tier,
+    createdAt: user.createdAt,
+  }
+}
+
 authRouter.post('/register', async (c) => {
   const body = await c.req.json()
   const { password, fullName, businessName } = body
@@ -38,9 +52,7 @@ authRouter.post('/register', async (c) => {
   }
 
   const token = await signJwt({ userId: user.id, email: user.email })
-  const { passwordHash: _, ...safeUser } = user
-
-  return c.json({ token, user: safeUser }, 201)
+  return c.json({ token, user: toSafeUser(user) }, 201)
 })
 
 authRouter.post('/login', async (c) => {
@@ -58,15 +70,12 @@ authRouter.post('/login', async (c) => {
   if (!valid) return c.json({ error: 'Invalid credentials' }, 401)
 
   const token = await signJwt({ userId: user.id, email: user.email })
-  const { passwordHash: _, ...safeUser } = user
-
-  return c.json({ token, user: safeUser }, 200)
+  return c.json({ token, user: toSafeUser(user) }, 200)
 })
 
 authRouter.get('/me', authMiddleware, async (c) => {
   const userId = c.get('userId')
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
   if (!user) return c.json({ error: 'Not found' }, 404)
-  const { passwordHash: _, ...safeUser } = user
-  return c.json(safeUser)
+  return c.json(toSafeUser(user))
 })
