@@ -99,8 +99,9 @@ telegramRouter.post('/telegram/webhook/:userId', async (c) => {
   try {
     const reply = await processMessage(userId, update.message.text, 'telegram')
     await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, reply)
-  } catch {
+  } catch (err) {
     // Always return 200 — Telegram retries on non-200 responses
+    console.error(`[telegram-webhook] userId=${userId} error:`, err)
   }
 
   return c.json({ ok: true })
