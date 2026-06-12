@@ -90,3 +90,39 @@ describe('POST /chat', () => {
     expect(res.status).toBe(400)
   })
 })
+
+describe('GET /chat/history', () => {
+  it('returns empty messages for new user', async () => {
+    const { token } = await createUserAndToken()
+    const res = await app.request('/chat/history', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { messages: any[] }
+    expect(body.messages).toEqual([])
+  })
+
+  it('returns saved conversation history', async () => {
+    const { token } = await createUserAndToken()
+    // Send first message (triggers onboarding)
+    await app.request('/chat', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'halo' }),
+    })
+    const res = await app.request('/chat/history', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { messages: any[] }
+    expect(body.messages.length).toBeGreaterThanOrEqual(2)
+    expect(body.messages[0].role).toBe('user')
+    expect(body.messages[0].content).toBe('halo')
+    expect(body.messages.every((m: any) => m.id && m.role && m.content !== undefined)).toBe(true)
+  })
+
+  it('returns 401 without Authorization header', async () => {
+    const res = await app.request('/chat/history')
+    expect(res.status).toBe(401)
+  })
+})

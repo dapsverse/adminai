@@ -34,3 +34,27 @@ export async function saveMessage(
     content,
   })
 }
+
+export async function loadHistory(
+  userId: string
+): Promise<Array<{ id: string; role: 'user' | 'assistant'; content: string }>> {
+  const rows = await db
+    .select({
+      id: conversationMessages.id,
+      role: conversationMessages.role,
+      content: conversationMessages.content,
+    })
+    .from(conversationMessages)
+    .where(eq(conversationMessages.userId, userId))
+    .orderBy(desc(conversationMessages.createdAt))
+    .limit(WINDOW_SIZE)
+
+  return rows
+    .reverse()
+    .filter(r => r.role === 'user' || r.role === 'assistant')
+    .map(r => ({
+      id: r.id,
+      role: r.role as 'user' | 'assistant',
+      content: r.content ?? '',
+    }))
+}

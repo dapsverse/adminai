@@ -1,8 +1,15 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../middleware/auth'
 import { processMessage } from '../agent/engine'
+import { loadHistory } from '../agent/context'
 
 export const chatRouter = new Hono()
+
+chatRouter.get('/history', authMiddleware, async (c) => {
+  const userId = c.get('userId')
+  const messages = await loadHistory(userId)
+  return c.json({ messages })
+})
 
 chatRouter.post('/', authMiddleware, async (c) => {
   let body: { message?: unknown }

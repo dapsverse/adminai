@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 
 export interface Message {
@@ -11,6 +11,15 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Load history on mount
+  useEffect(() => {
+    apiFetch<{ messages: Message[] }>('/chat/history')
+      .then(data => {
+        if (data.messages.length > 0) setMessages(data.messages)
+      })
+      .catch(() => {}) // silently fail — user starts fresh if history unavailable
+  }, [])
 
   const send = useCallback(async (content: string) => {
     if (!content.trim() || loading) return
