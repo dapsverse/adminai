@@ -145,6 +145,26 @@ describe('POST /reports', () => {
     expect(body.cronExpression).toBe('0 9 1 * *')
   })
 
+  it('returns 409 when a schedule of the same type already exists', async () => {
+    const { token, user } = await createUserAndToken()
+    await connectTelegram(user.id)
+
+    // Create first report
+    await app.request('/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'daily', delivery: 'telegram', time: '08:00' }),
+    })
+
+    // Try to create duplicate
+    const res = await app.request('/reports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'daily', delivery: 'telegram', time: '09:00' }),
+    })
+    expect(res.status).toBe(409)
+  })
+
   it('task sends Telegram message when triggered', async () => {
     const { token, user } = await createUserAndToken({ businessName: 'Toko Uji' })
     await connectTelegram(user.id)
@@ -280,13 +300,16 @@ describe('initScheduler', () => {
     const user = await createTestUser()
     await connectTelegram(user.id)
 
-    await db.insert(scheduledReports).values([
+    const inserted = await db.insert(scheduledReports).values([
       { userId: user.id, type: 'daily', cronExpression: '0 8 * * *', delivery: 'telegram' },
       { userId: user.id, type: 'weekly', cronExpression: '0 8 * * 1', delivery: 'telegram' },
-    ])
+    ]).returning()
 
     await initScheduler()
 
     expect(mockScheduler.scheduled.size).toBe(2)
+    const scheduledIds = [...mockScheduler.scheduled.keys()]
+    expect(scheduledIds).toContain(inserted[0].id)
+    expect(scheduledIds).toContain(inserted[1].id)
   })
 })

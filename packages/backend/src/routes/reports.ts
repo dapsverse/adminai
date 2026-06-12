@@ -25,7 +25,8 @@ reportsRouter.get('/reports', authMiddleware, async (c) => {
 reportsRouter.post('/reports', authMiddleware, async (c) => {
   const userId = c.get('userId')
   const body = await c.req.json() as Record<string, unknown>
-  const { type, delivery, time = '08:00' } = body
+  const { type, delivery, time: rawTime } = body
+  const time = rawTime != null ? rawTime : '08:00'
 
   if (!type || !['daily', 'weekly', 'monthly'].includes(type as string)) {
     return c.json({ error: 'type harus salah satu dari: daily, weekly, monthly' }, 400)
@@ -51,6 +52,17 @@ reportsRouter.post('/reports', authMiddleware, async (c) => {
   }
 
   const reportType = type as 'daily' | 'weekly' | 'monthly'
+
+  const [existing] = await db
+    .select({ id: scheduledReports.id })
+    .from(scheduledReports)
+    .where(and(eq(scheduledReports.userId, userId), eq(scheduledReports.type, reportType)))
+    .limit(1)
+
+  if (existing) {
+    return c.json({ error: `Jadwal laporan ${reportType} sudah ada. Hapus jadwal yang ada terlebih dahulu.` }, 409)
+  }
+
   const cronExpression = buildCronExpression(reportType, parsed.hour, parsed.minute)
   const nextRunAt = calculateNextRun(reportType, parsed.hour, parsed.minute)
 
