@@ -2,10 +2,18 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth'
 import { useSettings } from '../hooks/useSettings'
+import { useReports } from '../hooks/useReports'
+
+const TYPE_LABEL: Record<string, string> = {
+  daily: 'Harian (setiap hari)',
+  weekly: 'Mingguan (setiap Senin)',
+  monthly: 'Bulanan (setiap tanggal 1)',
+}
 
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const { loading, error, botUsername, connectTelegram, disconnectTelegram, clearError } = useSettings()
+  const { reports, loading: reportsLoading, error: reportsError, deleteReport } = useReports()
   const [botToken, setBotToken] = useState('')
   const [chatId, setChatId] = useState('')
 
@@ -29,7 +37,8 @@ export function SettingsPage() {
         </Link>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
+        {/* Telegram */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-1">Telegram</h2>
           <p className="text-sm text-gray-500 mb-4">
@@ -96,6 +105,49 @@ export function SettingsPage() {
                 {loading ? 'Menghubungkan...' : 'Hubungkan Telegram'}
               </button>
             </form>
+          )}
+        </div>
+
+        {/* Laporan Terjadwal */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Laporan Terjadwal</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Laporan keuangan otomatis yang dikirim via Telegram. Atur jadwal melalui chat dengan AdminAI.
+          </p>
+
+          {reportsError && (
+            <p className="text-sm text-red-600 mb-3">{reportsError}</p>
+          )}
+
+          {reports.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              Belum ada laporan terjadwal. Chat dengan AdminAI untuk membuat jadwal laporan otomatis.
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {reports.map(report => (
+                <li key={report.id} className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {TYPE_LABEL[report.type] ?? report.type}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      via {report.delivery}
+                      {report.nextRunAt
+                        ? ` · berikutnya ${new Date(report.nextRunAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                        : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteReport(report.id)}
+                    disabled={reportsLoading}
+                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 ml-4 flex-shrink-0"
+                  >
+                    Hapus
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
