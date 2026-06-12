@@ -13,12 +13,22 @@ export interface TelegramClient {
 
 class HttpTelegramClient implements TelegramClient {
   private async call(token: string, method: string, body?: object): Promise<unknown> {
-    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-      method: body ? 'POST' : 'GET',
-      headers: body ? { 'Content-Type': 'application/json' } : {},
-      body: body ? JSON.stringify(body) : undefined,
-    })
-    const json = await res.json() as { ok: boolean; result?: unknown; description?: string }
+    let res: Response
+    try {
+      res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: body ? 'POST' : 'GET',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined,
+      })
+    } catch (err) {
+      throw new Error(`Telegram network error on ${method}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    let json: { ok: boolean; result?: unknown; description?: string }
+    try {
+      json = await res.json() as { ok: boolean; result?: unknown; description?: string }
+    } catch {
+      throw new Error(`Telegram returned non-JSON response on ${method} (HTTP ${res.status})`)
+    }
     if (!json.ok) throw new Error(json.description ?? `Telegram API error on ${method}`)
     return json.result
   }
