@@ -121,13 +121,25 @@ export function createReportTask(
 
       const report = await generateReport(userId, type, new Date())
 
+      const sends: Promise<void>[] = []
+
       if ((delivery === 'telegram' || delivery === 'both') && user.telegramBotToken && user.telegramUserId) {
-        await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, report)
+        sends.push(
+          getTelegramClient()
+            .sendMessage(user.telegramBotToken, user.telegramUserId, report)
+            .catch(err => console.error(`[report-scheduler] telegram send failed reportId=${reportId}:`, err))
+        )
       }
 
       if (delivery === 'email' || delivery === 'both') {
-        await getEmailClient().sendEmail(user.email, buildEmailSubject(type), report)
+        sends.push(
+          getEmailClient()
+            .sendEmail(user.email, buildEmailSubject(type), report)
+            .catch(err => console.error(`[report-scheduler] email send failed reportId=${reportId}:`, err))
+        )
       }
+
+      await Promise.all(sends)
 
       await db
         .update(scheduledReports)
