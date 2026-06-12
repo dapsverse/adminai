@@ -30,6 +30,22 @@ export const listTransactionsTool: Tool = {
   },
 
   async execute(args, userId): Promise<ToolResult> {
+    let fromDate: Date | undefined
+    let toDate: Date | undefined
+
+    if (args.from) {
+      fromDate = new Date(args.from as string)
+      if (isNaN(fromDate.getTime())) {
+        return { success: false, error: 'format tanggal from tidak valid, gunakan ISO 8601 (contoh: 2026-06-12)' }
+      }
+    }
+    if (args.to) {
+      toDate = new Date(args.to as string)
+      if (isNaN(toDate.getTime())) {
+        return { success: false, error: 'format tanggal to tidak valid, gunakan ISO 8601 (contoh: 2026-06-12)' }
+      }
+    }
+
     try {
       const limit = Math.min(Number(args.limit ?? 10), 50)
 
@@ -39,8 +55,8 @@ export const listTransactionsTool: Tool = {
         .where(and(
           eq(transactions.userId, userId),
           args.type ? eq(transactions.type, args.type as 'income' | 'expense') : undefined,
-          args.from ? gte(transactions.date, new Date(args.from as string)) : undefined,
-          args.to ? lte(transactions.date, new Date(args.to as string)) : undefined,
+          fromDate ? gte(transactions.date, fromDate) : undefined,
+          toDate ? lte(transactions.date, toDate) : undefined,
         ))
         .orderBy(desc(transactions.date))
         .limit(limit)

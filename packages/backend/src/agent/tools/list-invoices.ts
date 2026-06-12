@@ -27,6 +27,11 @@ export const listInvoicesTool: Tool = {
   },
 
   async execute(args, userId): Promise<ToolResult> {
+    const VALID_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'received'] as const
+    if (args.status && !VALID_STATUSES.includes(args.status as any)) {
+      return { success: false, error: `status tidak valid. Pilihan: ${VALID_STATUSES.join(', ')}` }
+    }
+
     try {
       const limit = Math.min(Number(args.limit ?? 10), 50)
 
@@ -35,7 +40,7 @@ export const listInvoicesTool: Tool = {
         .from(invoices)
         .where(and(
           eq(invoices.userId, userId),
-          args.status ? eq(invoices.status, args.status as any) : undefined,
+          args.status ? eq(invoices.status, args.status as 'draft' | 'sent' | 'paid' | 'overdue' | 'received') : undefined,
           args.direction ? eq(invoices.direction, args.direction as 'outgoing' | 'incoming') : undefined,
         ))
         .orderBy(desc(invoices.createdAt))
