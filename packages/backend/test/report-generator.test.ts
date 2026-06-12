@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '../src/db'
-import { transactions, users } from '../src/db/schema'
-import { eq } from 'drizzle-orm'
+import { transactions } from '../src/db/schema'
 import { generateReport } from '../src/lib/report-generator'
 import { cleanDb, createTestUser } from './setup'
 
@@ -50,17 +49,28 @@ describe('generateReport — daily', () => {
 })
 
 describe('generateReport — weekly', () => {
-  it('includes weekly header and covers Mon–Sun range', async () => {
+  it('includes weekly header and shows transactions within the week', async () => {
     const user = await createTestUser()
-    const report = await generateReport(user.id, 'weekly', new Date())
+    // Use a known Monday so we can control what's "in the week"
+    const monday = new Date('2026-06-08T10:00:00.000Z') // Monday 8 June 2026
+    await db.insert(transactions).values([
+      { userId: user.id, type: 'income', amount: 150000, date: monday, source: 'agent' },
+    ])
+    const report = await generateReport(user.id, 'weekly', monday)
     expect(report).toContain('Laporan Mingguan')
+    expect(report).toContain('150.000')
   })
 })
 
 describe('generateReport — monthly', () => {
-  it('includes monthly header', async () => {
+  it('includes monthly header and shows transactions within the month', async () => {
     const user = await createTestUser()
-    const report = await generateReport(user.id, 'monthly', new Date())
+    const midMonth = new Date('2026-06-15T10:00:00.000Z') // 15 June 2026
+    await db.insert(transactions).values([
+      { userId: user.id, type: 'expense', amount: 75000, date: midMonth, source: 'agent' },
+    ])
+    const report = await generateReport(user.id, 'monthly', midMonth)
     expect(report).toContain('Laporan Bulanan')
+    expect(report).toContain('75.000')
   })
 })
