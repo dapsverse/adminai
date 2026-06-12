@@ -45,37 +45,40 @@ export function buildCronExpression(
   return `${minute} ${hour} 1 * *`
 }
 
+// I-3: timezone-aware calculateNextRun using UTC arithmetic for WIB (UTC+7)
 export function calculateNextRun(
   type: 'daily' | 'weekly' | 'monthly',
   hour: number,
   minute: number
 ): Date {
-  const now = new Date()
-  const candidate = new Date(now)
-  candidate.setHours(hour, minute, 0, 0)
+  const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000
+  // Interpret current time in WIB (UTC+7) using UTC arithmetic
+  const nowWib = new Date(Date.now() + JAKARTA_OFFSET_MS)
+  const candidate = new Date(nowWib)
+  candidate.setUTCHours(hour, minute, 0, 0)
 
   if (type === 'daily') {
-    if (candidate <= now) candidate.setDate(candidate.getDate() + 1)
-    return candidate
+    if (candidate <= nowWib) candidate.setUTCDate(candidate.getUTCDate() + 1)
+    return new Date(candidate.getTime() - JAKARTA_OFFSET_MS)
   }
 
   if (type === 'weekly') {
-    const currentDay = candidate.getDay()
+    const currentDay = nowWib.getUTCDay()
     const targetDay = 1 // Monday
     let daysUntil = (targetDay - currentDay + 7) % 7
-    if (daysUntil === 0 && candidate <= now) daysUntil = 7
-    candidate.setDate(candidate.getDate() + daysUntil)
-    return candidate
+    if (daysUntil === 0 && candidate <= nowWib) daysUntil = 7
+    candidate.setUTCDate(candidate.getUTCDate() + daysUntil)
+    return new Date(candidate.getTime() - JAKARTA_OFFSET_MS)
   }
 
-  // monthly — first of next month (or this month if 1st hasn't passed)
-  candidate.setDate(1)
-  if (candidate <= now) {
-    candidate.setMonth(candidate.getMonth() + 1)
-    candidate.setDate(1)
-    candidate.setHours(hour, minute, 0, 0)
+  // monthly — 1st of next month (or this month if 1st hasn't passed yet in WIB)
+  candidate.setUTCDate(1)
+  if (candidate <= nowWib) {
+    candidate.setUTCMonth(candidate.getUTCMonth() + 1)
+    candidate.setUTCDate(1)
+    candidate.setUTCHours(hour, minute, 0, 0)
   }
-  return candidate
+  return new Date(candidate.getTime() - JAKARTA_OFFSET_MS)
 }
 
 export function parseTime(time: string): { hour: number; minute: number } | null {
@@ -87,35 +90,42 @@ export function parseTime(time: string): { hour: number; minute: number } | null
   return { hour, minute }
 }
 
+// I-1: entire async body wrapped in one outer try/catch
+// I-2: lastRunAt updated inside try, only after sendMessage succeeds
+// Minor I-2: reportId added to error log
 export function createReportTask(
   reportId: string,
   userId: string,
   type: 'daily' | 'weekly' | 'monthly'
 ): () => Promise<void> {
   return async () => {
-    const [user] = await db
-      .select({ telegramBotToken: users.telegramBotToken, telegramUserId: users.telegramUserId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
-
-    if (!user?.telegramBotToken || !user?.telegramUserId) return
-
-    const report = await generateReport(userId, type, new Date())
-
     try {
-      await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, report)
-    } catch (err) {
-      console.error(`[report-scheduler] userId=${userId} send failed:`, err)
-    }
+      const [user] = await db
+        .select({ telegramBotToken: users.telegramBotToken, telegramUserId: users.telegramUserId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
 
-    await db
-      .update(scheduledReports)
-      .set({ lastRunAt: new Date() })
-      .where(eq(scheduledReports.id, reportId))
+      if (!user?.telegramBotToken || !user?.telegramUserId) return
+
+      const report = await generateReport(userId, type, new Date())
+      await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, report)
+
+      await db
+        .update(scheduledReports)
+        .set({ lastRunAt: new Date() })
+        .where(eq(scheduledReports.id, reportId))
+    } catch (err) {
+      console.error(`[report-scheduler] reportId=${reportId} userId=${userId} send failed:`, err)
+    }
   }
 }
 
+// I-5: runtime guard for valid report types
+const validTypes = ['daily', 'weekly', 'monthly'] as const
+type ValidType = typeof validTypes[number]
+
+// I-4: per-report error isolation so one bad cron expression won't crash initScheduler
 export async function initScheduler(): Promise<void> {
   const reports = await db
     .select({
@@ -128,8 +138,17 @@ export async function initScheduler(): Promise<void> {
 
   const s = getReportScheduler()
   for (const report of reports) {
-    const task = createReportTask(report.id, report.userId, report.type as 'daily' | 'weekly' | 'monthly')
-    s.schedule(report.id, report.cronExpression, task)
+    // I-5: skip unknown types instead of unsafe cast
+    if (!validTypes.includes(report.type as ValidType)) {
+      console.warn(`[report-scheduler] Unknown report type "${report.type}", skipping reportId=${report.id}`)
+      continue
+    }
+    try {
+      const task = createReportTask(report.id, report.userId, report.type as ValidType)
+      s.schedule(report.id, report.cronExpression, task)
+    } catch (err) {
+      console.error(`[report-scheduler] Failed to schedule reportId=${report.id}:`, err)
+    }
   }
 
   console.log(`[report-scheduler] Initialized ${reports.length} report(s)`)
