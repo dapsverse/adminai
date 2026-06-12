@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { cleanDb, createTestUser } from './setup'
 import { createTransactionTool } from '../src/agent/tools/create-transaction'
 import { getBalanceTool } from '../src/agent/tools/get-balance'
+import { listTransactionsTool } from '../src/agent/tools/list-transactions'
 
 beforeEach(() => cleanDb())
 
@@ -118,5 +119,47 @@ describe('get_balance', () => {
     const data = result.data as any
     expect(data.allTime.income).toBe(1199999)
     expect(data.thisMonth.income).toBe(200000)
+  })
+})
+
+describe('list_transactions', () => {
+  it('returns empty array for new user', async () => {
+    const user = await createTestUser()
+    const result = await listTransactionsTool.execute({}, user.id)
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual([])
+  })
+
+  it('returns transactions in descending date order', async () => {
+    const user = await createTestUser()
+    const older = new Date('2026-01-01')
+    const newer = new Date('2026-06-01')
+    await createTransactionTool.execute({ type: 'income', amount: 100, date: older.toISOString() }, user.id)
+    await createTransactionTool.execute({ type: 'expense', amount: 200, date: newer.toISOString() }, user.id)
+
+    const result = await listTransactionsTool.execute({}, user.id)
+    const rows = result.data as any[]
+    expect(rows[0].amount).toBe(200) // newest first
+    expect(rows[1].amount).toBe(100)
+  })
+
+  it('filters by type', async () => {
+    const user = await createTestUser()
+    await createTransactionTool.execute({ type: 'income', amount: 100 }, user.id)
+    await createTransactionTool.execute({ type: 'expense', amount: 200 }, user.id)
+
+    const result = await listTransactionsTool.execute({ type: 'income' }, user.id)
+    const rows = result.data as any[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].type).toBe('income')
+  })
+
+  it('respects limit', async () => {
+    const user = await createTestUser()
+    for (let i = 0; i < 5; i++) {
+      await createTransactionTool.execute({ type: 'income', amount: 100 * (i + 1) }, user.id)
+    }
+    const result = await listTransactionsTool.execute({ limit: 3 }, user.id)
+    expect((result.data as any[]).length).toBe(3)
   })
 })
