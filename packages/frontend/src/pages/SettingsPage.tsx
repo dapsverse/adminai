@@ -10,6 +10,12 @@ const TYPE_LABEL: Record<string, string> = {
   monthly: 'Bulanan (setiap tanggal 1)',
 }
 
+const DELIVERY_LABEL: Record<string, string> = {
+  telegram: 'Telegram',
+  email: 'Email',
+  both: 'Telegram & Email',
+}
+
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const { loading, error, botUsername, connectTelegram, disconnectTelegram, clearError } = useSettings()
@@ -132,7 +138,7 @@ export function SettingsPage() {
                       {TYPE_LABEL[report.type] ?? report.type}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      via {report.delivery}
+                      via {DELIVERY_LABEL[report.delivery] ?? report.delivery}
                       {report.nextRunAt
                         ? ` · berikutnya ${new Date(report.nextRunAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                         : ''}

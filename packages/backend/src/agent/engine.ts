@@ -20,7 +20,7 @@ Tools yang tersedia:
 - create_invoice: buat invoice baru (outgoing ke client, atau incoming dari supplier)
 - list_invoices: lihat daftar invoice dan statusnya
 - mark_invoice_paid: tandai invoice sudah lunas
-- schedule_report: jadwalkan laporan keuangan otomatis via Telegram (harian/mingguan/bulanan)
+- schedule_report: jadwalkan laporan keuangan otomatis (harian/mingguan/bulanan), kirim via telegram/email/both
 - list_reports: tampilkan semua laporan terjadwal
 - delete_report: hapus jadwal laporan berdasarkan ID
 
@@ -29,9 +29,9 @@ Panduan penggunaan tools:
 - Jika informasi kurang lengkap (misal: jumlah uang tidak jelas), tanyakan dulu sebelum memanggil tool
 - Semua amount dalam Rupiah (IDR), bilangan bulat
 - Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca
-- Untuk schedule_report: jika tidak disebutkan jam, gunakan 08:00 sebagai default
-- Laporan terjadwal saat ini hanya bisa dikirim via Telegram — pastikan Telegram sudah terhubung
-- Pengiriman via email belum tersedia (akan ditambahkan di versi mendatang)`.trim()
+- Untuk schedule_report: jika tidak disebutkan jam, gunakan 08:00 sebagai default; jika tidak disebutkan delivery, gunakan telegram
+- Delivery options: telegram (butuh Telegram terhubung), email (butuh SMTP server), both (keduanya)
+- Jika user minta via email tapi server belum dikonfigurasi, tool akan mengembalikan error — sampaikan ke user`.trim()
 }
 
 export async function processMessage(
