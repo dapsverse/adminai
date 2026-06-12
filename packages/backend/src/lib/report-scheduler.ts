@@ -45,7 +45,6 @@ export function buildCronExpression(
   return `${minute} ${hour} 1 * *`
 }
 
-// I-3: timezone-aware calculateNextRun using UTC arithmetic for WIB (UTC+7)
 export function calculateNextRun(
   type: 'daily' | 'weekly' | 'monthly',
   hour: number,
@@ -90,9 +89,6 @@ export function parseTime(time: string): { hour: number; minute: number } | null
   return { hour, minute }
 }
 
-// I-1: entire async body wrapped in one outer try/catch
-// I-2: lastRunAt updated inside try, only after sendMessage succeeds
-// Minor I-2: reportId added to error log
 export function createReportTask(
   reportId: string,
   userId: string,
@@ -121,11 +117,9 @@ export function createReportTask(
   }
 }
 
-// I-5: runtime guard for valid report types
 const validTypes = ['daily', 'weekly', 'monthly'] as const
 type ValidType = typeof validTypes[number]
 
-// I-4: per-report error isolation so one bad cron expression won't crash initScheduler
 export async function initScheduler(): Promise<void> {
   const reports = await db
     .select({
@@ -138,7 +132,6 @@ export async function initScheduler(): Promise<void> {
 
   const s = getReportScheduler()
   for (const report of reports) {
-    // I-5: skip unknown types instead of unsafe cast
     if (!validTypes.includes(report.type as ValidType)) {
       console.warn(`[report-scheduler] Unknown report type "${report.type}", skipping reportId=${report.id}`)
       continue
