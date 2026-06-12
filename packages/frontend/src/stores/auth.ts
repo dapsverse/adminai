@@ -6,6 +6,11 @@ interface User {
   email: string
   fullName: string
   businessName: string
+  invoiceSenderName?: string | null
+  emailPollIntervalMinutes?: number
+  onboardingState?: unknown
+  tier?: string
+  createdAt?: string
   telegramConnected?: boolean
 }
 
