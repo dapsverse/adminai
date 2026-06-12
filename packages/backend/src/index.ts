@@ -6,6 +6,7 @@ import { chatRouter } from './routes/chat'
 import { telegramRouter } from './routes/telegram'
 import { reportsRouter } from './routes/reports'
 import { registerTools } from './agent/tools/register'
+import { initScheduler } from './lib/report-scheduler'
 
 registerTools()
 
@@ -27,4 +28,5 @@ if (process.env.NODE_ENV !== 'test') {
   const port = Number(process.env.PORT) || 3000
   serve({ fetch: app.fetch, port })
   console.log(`Backend running on http://localhost:${port}`)
+  initScheduler().catch(err => console.error('[report-scheduler] Init failed:', err))
 }
