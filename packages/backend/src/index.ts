@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { authRouter } from './routes/auth'
 import { chatRouter } from './routes/chat'
+import { telegramRouter } from './routes/telegram'
 import { registerTools } from './agent/tools/register'
 
 registerTools()
@@ -16,6 +17,7 @@ app.onError((err, c) => {
 
 app.route('/auth', authRouter)
 app.route('/chat', chatRouter)
+app.route('/', telegramRouter)
 
 app.get('/health', (c) => c.json({ ok: true }))
 
