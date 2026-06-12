@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanDb, createTestUser } from './setup'
 import { createInvoiceTool } from '../src/agent/tools/create-invoice'
+import { listInvoicesTool } from '../src/agent/tools/list-invoices'
 
 beforeEach(() => cleanDb())
 
@@ -86,5 +87,62 @@ describe('create_invoice', () => {
     )
     expect(result.success).toBe(false)
     expect(result.error).toBeTruthy()
+  })
+})
+
+describe('list_invoices', () => {
+  it('returns empty array for new user', async () => {
+    const user = await createTestUser()
+    const result = await listInvoicesTool.execute({}, user.id)
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual([])
+  })
+
+  it('returns invoices in descending creation order', async () => {
+    const user = await createTestUser()
+    await createInvoiceTool.execute(
+      { direction: 'outgoing', clientName: 'Client A', items: [{ description: 'A', qty: 1, price: 100 }] },
+      user.id
+    )
+    await createInvoiceTool.execute(
+      { direction: 'outgoing', clientName: 'Client B', items: [{ description: 'B', qty: 1, price: 200 }] },
+      user.id
+    )
+    const result = await listInvoicesTool.execute({}, user.id)
+    const rows = result.data as any[]
+    expect(rows[0].clientName).toBe('Client B') // newest first
+  })
+
+  it('filters by status', async () => {
+    const user = await createTestUser()
+    await createInvoiceTool.execute(
+      { direction: 'outgoing', clientName: 'Client A', items: [{ description: 'A', qty: 1, price: 100 }] },
+      user.id
+    )
+    await createInvoiceTool.execute(
+      { direction: 'incoming', clientName: 'Supplier X', items: [{ description: 'B', qty: 1, price: 200 }] },
+      user.id
+    )
+    // outgoing = draft, incoming = received
+    const result = await listInvoicesTool.execute({ status: 'draft' }, user.id)
+    const rows = result.data as any[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].clientName).toBe('Client A')
+  })
+
+  it('filters by direction', async () => {
+    const user = await createTestUser()
+    await createInvoiceTool.execute(
+      { direction: 'outgoing', clientName: 'Client A', items: [{ description: 'A', qty: 1, price: 100 }] },
+      user.id
+    )
+    await createInvoiceTool.execute(
+      { direction: 'incoming', clientName: 'Supplier X', items: [{ description: 'B', qty: 1, price: 200 }] },
+      user.id
+    )
+    const result = await listInvoicesTool.execute({ direction: 'incoming' }, user.id)
+    const rows = result.data as any[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].clientName).toBe('Supplier X')
   })
 })
