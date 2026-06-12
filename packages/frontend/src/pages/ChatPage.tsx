@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../hooks/useChat'
 import { ChatMessage } from '../components/ChatMessage'
@@ -36,12 +36,17 @@ export function ChatPage() {
           <h1 className="font-semibold text-gray-900">AdminAI</h1>
           <p className="text-xs text-gray-500">{user?.businessName}</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Keluar
-        </button>
+        <div className="flex items-center gap-4">
+          <Link to="/settings" className="text-sm text-gray-500 hover:text-gray-700">
+            Pengaturan
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Keluar
+          </button>
+        </div>
       </header>
 
       {/* Messages area */}
