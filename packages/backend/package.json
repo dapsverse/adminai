@@ -19,6 +19,7 @@
     "drizzle-orm": "^0.38",
     "hono": "^4.6",
     "jose": "^5.9",
+    "node-cron": "^4.2.1",
     "postgres": "^3.4"
   },
   "devDependencies": {
