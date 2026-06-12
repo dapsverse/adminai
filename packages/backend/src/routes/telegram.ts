@@ -4,6 +4,7 @@ import { db } from '../db'
 import { users } from '../db/schema'
 import { authMiddleware } from '../middleware/auth'
 import { getTelegramClient } from '../lib/telegram'
+import { processMessage } from '../agent/engine'
 
 export const telegramRouter = new Hono()
 
@@ -68,4 +69,39 @@ telegramRouter.delete('/auth/telegram', authMiddleware, async (c) => {
     .where(eq(users.id, userId))
 
   return c.json({ telegramConnected: false })
+})
+
+interface TelegramUpdate {
+  update_id: number
+  message?: {
+    from: { id: number }
+    chat: { id: number }
+    text?: string
+  }
+}
+
+telegramRouter.post('/telegram/webhook/:userId', async (c) => {
+  const userId = c.req.param('userId')
+  const update = await c.req.json() as TelegramUpdate
+
+  if (!update.message?.text) return c.json({ ok: true })
+
+  const [user] = await db
+    .select({ telegramBotToken: users.telegramBotToken, telegramUserId: users.telegramUserId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  if (!user?.telegramBotToken || !user?.telegramUserId) return c.json({ ok: true })
+
+  if (String(update.message.chat.id) !== user.telegramUserId) return c.json({ ok: true })
+
+  try {
+    const reply = await processMessage(userId, update.message.text, 'telegram')
+    await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, reply)
+  } catch {
+    // Always return 200 — Telegram retries on non-200 responses
+  }
+
+  return c.json({ ok: true })
 })

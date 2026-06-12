@@ -142,3 +142,73 @@ describe('DELETE /auth/telegram', () => {
     expect(updated.telegramUserId).toBeNull()
   })
 })
+
+describe('POST /telegram/webhook/:userId', () => {
+  function makeUpdate(chatId: number, text: string) {
+    return {
+      update_id: 1,
+      message: {
+        message_id: 1,
+        from: { id: chatId },
+        chat: { id: chatId },
+        text,
+        date: 1718000000,
+      },
+    }
+  }
+
+  it('returns 200 and ignores updates with no message or no text', async () => {
+    const res = await app.request('/telegram/webhook/any-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ update_id: 1 }),
+    })
+    expect(res.status).toBe(200)
+    expect(mockBot.sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('returns 200 and does not call sendMessage for unknown userId', async () => {
+    const res = await app.request('/telegram/webhook/nonexistent-user-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(makeUpdate(999999, 'halo')),
+    })
+    expect(res.status).toBe(200)
+    expect(mockBot.sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('returns 200 and does not call sendMessage when sender is not the registered telegram user', async () => {
+    const user = await createTestUser()
+    await db.update(users)
+      .set({ telegramBotToken: 'bot123:ABC', telegramUserId: '987654321' })
+      .where(eq(users.id, user.id))
+
+    const res = await app.request(`/telegram/webhook/${user.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(makeUpdate(111111111, 'spoofed')),
+    })
+    expect(res.status).toBe(200)
+    expect(mockBot.sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('processes message from registered user and calls sendMessage with reply', async () => {
+    const user = await createTestUser()
+    await db.update(users)
+      .set({ telegramBotToken: 'bot123:ABC', telegramUserId: '987654321' })
+      .where(eq(users.id, user.id))
+
+    const res = await app.request(`/telegram/webhook/${user.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(makeUpdate(987654321, 'halo dari telegram')),
+    })
+
+    expect(res.status).toBe(200)
+    expect(mockBot.sendMessage).toHaveBeenCalledWith(
+      'bot123:ABC',
+      '987654321',
+      expect.any(String)
+    )
+  })
+})
