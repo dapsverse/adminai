@@ -73,4 +73,18 @@ describe('create_invoice', () => {
     expect(result.success).toBe(false)
     expect(result.error).toBeTruthy()
   })
+
+  it('returns error when item is missing qty or price', async () => {
+    const user = await createTestUser()
+    const result = await createInvoiceTool.execute(
+      {
+        direction: 'outgoing',
+        clientName: 'Client A',
+        items: [{ description: 'Barang X' }], // no qty or price
+      },
+      user.id
+    )
+    expect(result.success).toBe(false)
+    expect(result.error).toBeTruthy()
+  })
 })

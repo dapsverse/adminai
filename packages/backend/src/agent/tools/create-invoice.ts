@@ -75,6 +75,15 @@ export const createInvoiceTool: Tool = {
       return { success: false, error: 'items harus berisi minimal 1 item' }
     }
 
+    for (const item of items) {
+      if (typeof item.qty !== 'number' || isNaN(item.qty) || item.qty <= 0) {
+        return { success: false, error: 'Setiap item harus memiliki qty berupa angka positif' }
+      }
+      if (typeof item.price !== 'number' || isNaN(item.price) || item.price < 0) {
+        return { success: false, error: 'Setiap item harus memiliki price berupa angka (Rupiah)' }
+      }
+    }
+
     try {
       const totalAmount = items.reduce((sum, item) => sum + item.qty * item.price, 0)
       const invoiceNumber = await nextInvoiceNumber(userId)
