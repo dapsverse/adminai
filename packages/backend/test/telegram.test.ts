@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { app } from '../src/index'
 import { db } from '../src/db'
 import { users } from '../src/db/schema'
@@ -32,6 +32,11 @@ beforeEach(async () => {
   mockBot = makeMockBot()
   setTelegramClient(mockBot)
   setLlmProvider(mockLlm)
+  process.env.WEBHOOK_BASE_URL = 'https://test.example.com'
+})
+
+afterEach(() => {
+  delete process.env.WEBHOOK_BASE_URL
 })
 
 async function createUserAndToken() {
@@ -93,7 +98,10 @@ describe('PUT /auth/telegram', () => {
     expect(body.telegramConnected).toBe(true)
     expect(body.botUsername).toBe('mytestbot')
     expect(mockBot.getMe).toHaveBeenCalledWith('bot123:ABC')
-    expect(mockBot.setWebhook).toHaveBeenCalledOnce()
+    expect(mockBot.setWebhook).toHaveBeenCalledWith(
+      'bot123:ABC',
+      expect.stringContaining(`/telegram/webhook/`)
+    )
     const [updated] = await db.select().from(users).where(eq(users.id, user.id))
     expect(updated.telegramBotToken).toBe('bot123:ABC')
     expect(updated.telegramUserId).toBe('987654321')

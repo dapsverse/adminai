@@ -27,7 +27,10 @@ telegramRouter.put('/auth/telegram', authMiddleware, async (c) => {
     return c.json({ error: 'Bot token tidak valid. Periksa kembali token dari BotFather.' }, 422)
   }
 
-  const base = process.env.WEBHOOK_BASE_URL ?? ''
+  const base = process.env.WEBHOOK_BASE_URL
+  if (!base) {
+    return c.json({ error: 'Server belum dikonfigurasi untuk menerima webhook Telegram.' }, 500)
+  }
   try {
     await telegram.setWebhook(botToken, `${base}/telegram/webhook/${userId}`)
   } catch {
