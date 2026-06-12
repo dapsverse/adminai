@@ -15,7 +15,7 @@ export function useSettings() {
   const [error, setError] = useState<string | null>(null)
   const [botUsername, setBotUsername] = useState<string | null>(null)
 
-  const connectTelegram = async (botToken: string, telegramChatId: string) => {
+  const connectTelegram = async (botToken: string, telegramChatId: string): Promise<boolean> => {
     setLoading(true)
     setError(null)
     try {
@@ -25,8 +25,10 @@ export function useSettings() {
       })
       setBotUsername(data.botUsername)
       if (user && token) setAuth(token, { ...user, telegramConnected: true })
+      return true
     } catch (err: any) {
       setError(err.message ?? 'Gagal menghubungkan Telegram.')
+      return false
     } finally {
       setLoading(false)
     }
@@ -46,5 +48,5 @@ export function useSettings() {
     }
   }
 
-  return { loading, error, botUsername, connectTelegram, disconnectTelegram }
+  return { loading, error, botUsername, connectTelegram, disconnectTelegram, clearError: () => setError(null) }
 }

@@ -5,15 +5,17 @@ import { useSettings } from '../hooks/useSettings'
 
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
-  const { loading, error, botUsername, connectTelegram, disconnectTelegram } = useSettings()
+  const { loading, error, botUsername, connectTelegram, disconnectTelegram, clearError } = useSettings()
   const [botToken, setBotToken] = useState('')
   const [chatId, setChatId] = useState('')
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault()
-    await connectTelegram(botToken.trim(), chatId.trim())
-    setBotToken('')
-    setChatId('')
+    const ok = await connectTelegram(botToken.trim(), chatId.trim())
+    if (ok) {
+      setBotToken('')
+      setChatId('')
+    }
   }
 
   const isConnected = user?.telegramConnected || !!botUsername
@@ -39,6 +41,7 @@ export function SettingsPage() {
               <p className="text-sm text-green-700 bg-green-50 rounded-lg px-4 py-3">
                 Terhubung ke @{botUsername ?? 'bot kamu'}
               </p>
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <button
                 onClick={disconnectTelegram}
                 disabled={loading}
@@ -56,7 +59,7 @@ export function SettingsPage() {
                 <input
                   type="text"
                   value={botToken}
-                  onChange={e => setBotToken(e.target.value)}
+                  onChange={e => { setBotToken(e.target.value); clearError() }}
                   placeholder="123456789:ABCdef..."
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 />
