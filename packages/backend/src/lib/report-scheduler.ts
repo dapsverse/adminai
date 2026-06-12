@@ -4,6 +4,7 @@ import { scheduledReports, users } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { generateReport } from './report-generator'
 import { getTelegramClient } from './telegram'
+import { getEmailClient } from './email'
 
 export interface ReportScheduler {
   schedule(reportId: string, cronExpression: string, task: () => Promise<void>): void
@@ -89,23 +90,44 @@ export function parseTime(time: string): { hour: number; minute: number } | null
   return { hour, minute }
 }
 
+function buildEmailSubject(type: 'daily' | 'weekly' | 'monthly'): string {
+  const labels: Record<string, string> = {
+    daily: 'Laporan Harian',
+    weekly: 'Laporan Mingguan',
+    monthly: 'Laporan Bulanan',
+  }
+  return `[AdminAI] ${labels[type]}`
+}
+
 export function createReportTask(
   reportId: string,
   userId: string,
-  type: 'daily' | 'weekly' | 'monthly'
+  type: 'daily' | 'weekly' | 'monthly',
+  delivery: 'telegram' | 'email' | 'both' = 'telegram'
 ): () => Promise<void> {
   return async () => {
     try {
       const [user] = await db
-        .select({ telegramBotToken: users.telegramBotToken, telegramUserId: users.telegramUserId })
+        .select({
+          email: users.email,
+          telegramBotToken: users.telegramBotToken,
+          telegramUserId: users.telegramUserId,
+        })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1)
 
-      if (!user?.telegramBotToken || !user?.telegramUserId) return
+      if (!user) return
 
       const report = await generateReport(userId, type, new Date())
-      await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, report)
+
+      if ((delivery === 'telegram' || delivery === 'both') && user.telegramBotToken && user.telegramUserId) {
+        await getTelegramClient().sendMessage(user.telegramBotToken, user.telegramUserId, report)
+      }
+
+      if (delivery === 'email' || delivery === 'both') {
+        await getEmailClient().sendEmail(user.email, buildEmailSubject(type), report)
+      }
 
       await db
         .update(scheduledReports)
@@ -127,6 +149,7 @@ export async function initScheduler(): Promise<void> {
       userId: scheduledReports.userId,
       type: scheduledReports.type,
       cronExpression: scheduledReports.cronExpression,
+      delivery: scheduledReports.delivery,
     })
     .from(scheduledReports)
 
@@ -137,7 +160,12 @@ export async function initScheduler(): Promise<void> {
       continue
     }
     try {
-      const task = createReportTask(report.id, report.userId, report.type as ValidType)
+      const task = createReportTask(
+        report.id,
+        report.userId,
+        report.type as ValidType,
+        report.delivery as 'telegram' | 'email' | 'both'
+      )
       s.schedule(report.id, report.cronExpression, task)
     } catch (err) {
       console.error(`[report-scheduler] Failed to schedule reportId=${report.id}:`, err)
