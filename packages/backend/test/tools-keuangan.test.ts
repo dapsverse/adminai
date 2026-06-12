@@ -57,4 +57,21 @@ describe('create_transaction', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].amount).toBe(200000)
   })
+
+  it('returns error when amount is zero', async () => {
+    const user = await createTestUser()
+    const result = await createTransactionTool.execute({ type: 'income', amount: 0 }, user.id)
+    expect(result.success).toBe(false)
+    expect(result.error).toBeTruthy()
+  })
+
+  it('returns error when date format is invalid', async () => {
+    const user = await createTestUser()
+    const result = await createTransactionTool.execute(
+      { type: 'income', amount: 100000, date: 'bukan-tanggal' },
+      user.id
+    )
+    expect(result.success).toBe(false)
+    expect(result.error).toBeTruthy()
+  })
 })

@@ -40,8 +40,17 @@ export const createTransactionTool: Tool = {
     if (!type || (type !== 'income' && type !== 'expense')) {
       return { success: false, error: 'type harus income atau expense' }
     }
-    if (amount === undefined || amount === null || isNaN(Number(amount))) {
-      return { success: false, error: 'amount harus diisi (angka dalam Rupiah)' }
+    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return { success: false, error: 'amount harus angka positif dalam Rupiah' }
+    }
+
+    let parsedDate = new Date()
+    if (args.date) {
+      const d = new Date(args.date as string)
+      if (isNaN(d.getTime())) {
+        return { success: false, error: 'format tanggal tidak valid, gunakan ISO 8601 (contoh: 2026-06-12)' }
+      }
+      parsedDate = d
     }
 
     try {
@@ -52,7 +61,7 @@ export const createTransactionTool: Tool = {
         category: args.category as string | undefined,
         description: args.description as string | undefined,
         source: 'agent',
-        date: args.date ? new Date(args.date as string) : new Date(),
+        date: parsedDate,
       }).returning()
 
       return { success: true, data: tx }
