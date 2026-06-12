@@ -13,7 +13,7 @@ export class NodemailerEmailClient implements EmailClient {
     const from = process.env.EMAIL_FROM ?? 'AdminAI <reports@adminai.id>'
 
     if (!host || !user || !pass) {
-      throw new Error('SMTP tidak dikonfigurasi. Set SMTP_HOST, SMTP_USER, SMTP_PASS di environment.')
+      throw new Error('SMTP not configured: set SMTP_HOST, SMTP_USER, SMTP_PASS in environment.')
     }
 
     const transporter = nodemailer.createTransport({

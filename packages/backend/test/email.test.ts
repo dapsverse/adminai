@@ -49,11 +49,15 @@ describe('NodemailerEmailClient', () => {
     vi.stubEnv('SMTP_USER', '')
     vi.stubEnv('SMTP_PASS', '')
     const client = new NodemailerEmailClient()
-    await expect(client.sendEmail('to@example.com', 'Subject', 'Body')).rejects.toThrow('SMTP tidak dikonfigurasi')
+    await expect(client.sendEmail('to@example.com', 'Subject', 'Body')).rejects.toThrow('SMTP not configured')
   })
 })
 
 describe('getEmailClient / setEmailClient', () => {
+  afterEach(() => {
+    setEmailClient(new NodemailerEmailClient())
+  })
+
   it('returns MockEmailClient after setEmailClient', async () => {
     const mock = new MockEmailClient()
     setEmailClient(mock)
