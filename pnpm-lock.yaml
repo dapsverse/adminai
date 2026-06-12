@@ -12,12 +12,15 @@ importers:
       '@paralleldrive/cuid2': ^2.2
       '@types/bcrypt': ^5.0
       '@types/node': ^22
+      '@types/nodemailer': ^8.0.1
       bcrypt: ^5.1
       dotenv: ^16.4
       drizzle-kit: ^0.30
       drizzle-orm: ^0.38
       hono: ^4.6
       jose: ^5.9
+      node-cron: ^4.2.1
+      nodemailer: ^8.0.11
       postgres: ^3.4
       tsx: ^4.19
       typescript: ^5.7
@@ -31,10 +34,13 @@ importers:
       drizzle-orm: 0.38.4_postgres@3.4.9
       hono: 4.12.25
       jose: 5.10.0
+      node-cron: 4.2.1
+      nodemailer: 8.0.11
       postgres: 3.4.9
     devDependencies:
       '@types/bcrypt': 5.0.2
       '@types/node': 22.19.21
+      '@types/nodemailer': 8.0.1
       drizzle-kit: 0.30.6
       tsx: 4.22.4
       typescript: 5.9.3
@@ -1704,6 +1710,12 @@ packages:
       undici-types: 6.21.0
     dev: true
 
+  /@types/nodemailer/8.0.1:
+    resolution: {integrity: sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw==}
+    dependencies:
+      '@types/node': 22.19.21
+    dev: true
+
   /@types/prop-types/15.7.15:
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
@@ -2698,6 +2710,11 @@ packages:
     resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
     dev: false
 
+  /node-cron/4.2.1:
+    resolution: {integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==}
+    engines: {node: '>=6.0.0'}
+    dev: false
+
   /node-fetch/2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
     engines: {node: 4.x || >=6.0.0}
@@ -2714,6 +2731,11 @@ packages:
     resolution: {integrity: sha512-Uzmd6LXpouKo8EUK68IjH4+E01w/hXyV3R3g/geCJo+rXLNfh1xucB+LOzYEOQPSiUK3h/xZf0cQGcSsmyL2Og==}
     engines: {node: '>=18'}
     dev: true
+
+  /nodemailer/8.0.11:
+    resolution: {integrity: sha512-nrO/pDAUKl+wXX+lx16tDLbnm0fW6sK/x8mgohaCpg+CdCEl482bD4tCuAZk2DyliruiNTIZxRCoWkDqJEnAiA==}
+    engines: {node: '>=6.0.0'}
+    dev: false
 
   /nopt/5.0.0:
     resolution: {integrity: sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==}
