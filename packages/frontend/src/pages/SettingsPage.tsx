@@ -39,7 +39,7 @@ export function SettingsPage() {
           {isConnected ? (
             <div className="space-y-3">
               <p className="text-sm text-green-700 bg-green-50 rounded-lg px-4 py-3">
-                Terhubung ke @{botUsername ?? 'bot kamu'}
+                {botUsername ? `Terhubung ke @${botUsername}` : 'Telegram sudah terhubung'}
               </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button
@@ -75,7 +75,7 @@ export function SettingsPage() {
                 <input
                   type="text"
                   value={chatId}
-                  onChange={e => setChatId(e.target.value)}
+                  onChange={e => { setChatId(e.target.value); clearError() }}
                   placeholder="987654321"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 />

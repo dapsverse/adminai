@@ -5,6 +5,8 @@ import type { LlmMessage } from '../lib/llm/types'
 
 const WINDOW_SIZE = 20
 
+// Loads history across all channels (web + telegram) — shared context is intentional
+// so the LLM has a complete picture regardless of which channel the user messages from.
 export async function loadContext(userId: string): Promise<LlmMessage[]> {
   const rows = await db
     .select()
