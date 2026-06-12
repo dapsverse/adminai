@@ -9,9 +9,23 @@ import { getAllTools, getTool } from './tools'
 function buildSystemPrompt(fullName: string, businessName: string): string {
   return `Kamu adalah AdminAI, asisten AI untuk usaha kecil.
 Pengguna: ${fullName} | Bisnis: ${businessName}
-Tugasmu: membantu mengelola keuangan dan invoice melalui percakapan.
+
+Tugasmu: membantu mengelola keuangan dan invoice ${businessName} melalui percakapan.
 Jawab dalam Bahasa Indonesia yang santai dan ramah.
-Jika diminta fitur yang belum tersedia, beritahu bahwa sedang dikembangkan.`.trim()
+
+Tools yang tersedia:
+- create_transaction: catat pemasukan atau pengeluaran baru
+- get_balance: lihat ringkasan saldo dan arus kas (semua waktu + bulan ini)
+- list_transactions: tampilkan riwayat transaksi dengan filter opsional
+- create_invoice: buat invoice baru (outgoing ke client, atau incoming dari supplier)
+- list_invoices: lihat daftar invoice dan statusnya
+- mark_invoice_paid: tandai invoice sudah lunas
+
+Panduan penggunaan tools:
+- Gunakan tools secara proaktif saat user menyebut transaksi, invoice, atau minta laporan
+- Jika informasi kurang lengkap (misal: jumlah uang tidak jelas), tanyakan dulu sebelum memanggil tool
+- Semua amount dalam Rupiah (IDR), bilangan bulat
+- Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca`.trim()
 }
 
 export async function processMessage(userId: string, message: string): Promise<string> {
@@ -50,17 +64,21 @@ export async function processMessage(userId: string, message: string): Promise<s
       if (!tool) {
         reply = 'Maaf, fitur tersebut belum tersedia saat ini.'
       } else {
-        const result = await tool.execute(tc.args, userId)
-        const historyWithCurrentMessage = [
-          ...history,
-          { role: 'user' as const, content: message },
-        ]
-        const followUp = await llm.chat(
-          systemPrompt,
-          historyWithCurrentMessage,
-          `Data dari ${tc.name}: ${JSON.stringify(result.data ?? result.error)}\nBerikan respons informatif kepada pengguna.`
-        )
-        reply = followUp.content ?? 'Maaf, tidak ada respons.'
+        try {
+          const result = await tool.execute(tc.args, userId)
+          const historyWithCurrentMessage = [
+            ...history,
+            { role: 'user' as const, content: message },
+          ]
+          const followUp = await llm.chat(
+            systemPrompt,
+            historyWithCurrentMessage,
+            `Data dari ${tc.name}: ${JSON.stringify(result.data ?? result.error)}\nBerikan respons informatif kepada pengguna.`
+          )
+          reply = followUp.content ?? 'Maaf, tidak ada respons.'
+        } catch {
+          reply = 'Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi.'
+        }
       }
     } else {
       reply = response.content ?? 'Maaf, tidak ada respons.'

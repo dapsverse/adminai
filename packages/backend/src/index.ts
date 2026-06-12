@@ -3,6 +3,9 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { authRouter } from './routes/auth'
 import { chatRouter } from './routes/chat'
+import { registerTools } from './agent/tools/register'
+
+registerTools()
 
 export const app = new Hono()
 
