@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../hooks/useChat'
 import { ChatMessage } from '../components/ChatMessage'
@@ -8,7 +8,7 @@ export function ChatPage() {
   const user = useAuthStore((s) => s.user)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const navigate = useNavigate()
-  const { messages, loading, error, send } = useChat()
+  const { messages, loading, error, send, historyLoaded } = useChat()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -37,9 +37,6 @@ export function ChatPage() {
           <p className="text-xs text-gray-500">{user?.businessName}</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/settings" className="text-sm text-gray-500 hover:text-gray-700">
-            Pengaturan
-          </Link>
           <button
             onClick={handleLogout}
             className="text-sm text-gray-500 hover:text-gray-700"
@@ -51,13 +48,11 @@ export function ChatPage() {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && !loading && (
-          <div className="flex-1 flex items-center justify-center h-full">
-            <div className="text-center text-gray-400 mt-20">
-              <p className="text-lg font-medium">Halo, {user?.fullName}!</p>
-              <p className="text-sm mt-1">Ketik pesan untuk mulai berbicara dengan AdminAI.</p>
-            </div>
-          </div>
+        {historyLoaded && messages.length === 0 && (
+          <ChatMessage
+            role="assistant"
+            content={`Halo, ${user?.fullName}! Selamat datang di AdminAI.\n\nSaya siap membantu kamu mengelola keuangan dan invoice untuk ${user?.businessName}.\n\nSebelum mulai, ada 2 hal yang bisa set up supaya pengalamanmu lebih lengkap:\n\n📱 Telegram — Chat dengan saya langsung dari HP dan terima laporan keuangan otomatis kapan saja. Ketik "setup telegram" untuk memulai.\n\n📧 Email — Saya bisa otomatis mendeteksi transaksi dari email masuk. Ketik "connect email" untuk memulai.\n\nAtau langsung mulai aja — mau catat apa hari ini?`}
+          />
         )}
 
         {messages.map(msg => (

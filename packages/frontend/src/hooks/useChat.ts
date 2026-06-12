@@ -11,6 +11,7 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [historyLoaded, setHistoryLoaded] = useState(false)
 
   // Load history on mount
   useEffect(() => {
@@ -18,7 +19,8 @@ export function useChat() {
       .then(data => {
         if (data.messages.length > 0) setMessages(data.messages)
       })
-      .catch(() => {}) // silently fail — user starts fresh if history unavailable
+      .catch(() => {})
+      .finally(() => setHistoryLoaded(true))
   }, [])
 
   const send = useCallback(async (content: string) => {
@@ -52,5 +54,5 @@ export function useChat() {
     }
   }, [loading])
 
-  return { messages, loading, error, send }
+  return { messages, loading, error, send, historyLoaded }
 }
