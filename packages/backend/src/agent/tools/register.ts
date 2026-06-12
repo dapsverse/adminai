@@ -5,6 +5,9 @@ import { listTransactionsTool } from './list-transactions'
 import { createInvoiceTool } from './create-invoice'
 import { listInvoicesTool } from './list-invoices'
 import { markInvoicePaidTool } from './mark-invoice-paid'
+import { scheduleReportTool } from './schedule-report'
+import { listReportsTool } from './list-reports'
+import { deleteReportTool } from './delete-report'
 
 export function registerTools(): void {
   registerTool(createTransactionTool)
@@ -13,4 +16,7 @@ export function registerTools(): void {
   registerTool(createInvoiceTool)
   registerTool(listInvoicesTool)
   registerTool(markInvoicePaidTool)
+  registerTool(scheduleReportTool)
+  registerTool(listReportsTool)
+  registerTool(deleteReportTool)
 }
