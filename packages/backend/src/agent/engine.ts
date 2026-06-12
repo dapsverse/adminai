@@ -28,7 +28,11 @@ Panduan penggunaan tools:
 - Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca`.trim()
 }
 
-export async function processMessage(userId: string, message: string): Promise<string> {
+export async function processMessage(
+  userId: string,
+  message: string,
+  channel: 'web' | 'telegram' = 'web'
+): Promise<string> {
   const [user] = await db
     .select({ fullName: users.fullName, businessName: users.businessName })
     .from(users)
@@ -85,8 +89,8 @@ export async function processMessage(userId: string, message: string): Promise<s
     }
   }
 
-  await saveMessage(userId, 'user', message)
-  await saveMessage(userId, 'assistant', reply)
+  await saveMessage(userId, 'user', message, channel)
+  await saveMessage(userId, 'assistant', reply, channel)
 
   return reply
 }

@@ -25,11 +25,12 @@ export async function loadContext(userId: string): Promise<LlmMessage[]> {
 export async function saveMessage(
   userId: string,
   role: 'user' | 'assistant',
-  content: string
+  content: string,
+  channel: 'web' | 'telegram' = 'web'
 ): Promise<void> {
   await db.insert(conversationMessages).values({
     userId,
-    channel: 'web',
+    channel,
     role,
     content,
   })
