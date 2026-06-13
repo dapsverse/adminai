@@ -66,6 +66,7 @@ export class GroqProvider implements LlmProvider {
       }
     }
 
-    return { content: msg.content ?? '', toolCalls: [] }
+    const text = (msg.content ?? '').replace(/<function=[^>]+>[\s\S]*?<\/function>/g, '').trim()
+    return { content: text, toolCalls: [] }
   }
 }

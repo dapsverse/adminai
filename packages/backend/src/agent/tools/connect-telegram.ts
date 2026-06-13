@@ -40,14 +40,15 @@ export const connectTelegramTool: Tool = {
     }
 
     const webhookBase = process.env.WEBHOOK_BASE_URL
-    if (!webhookBase) {
-      return { success: false, error: 'Server belum dikonfigurasi untuk menerima pesan Telegram (WEBHOOK_BASE_URL tidak diset).' }
-    }
+    let webhookRegistered = false
 
-    try {
-      await telegram.setWebhook(botToken, `${webhookBase}/telegram/webhook/${userId}`)
-    } catch {
-      return { success: false, error: 'Gagal mendaftarkan webhook ke Telegram. Coba lagi.' }
+    if (webhookBase) {
+      try {
+        await telegram.setWebhook(botToken, `${webhookBase}/telegram/webhook/${userId}`)
+        webhookRegistered = true
+      } catch {
+        return { success: false, error: 'Gagal mendaftarkan webhook ke Telegram. Coba lagi.' }
+      }
     }
 
     await db.update(users)
@@ -56,7 +57,7 @@ export const connectTelegramTool: Tool = {
 
     return {
       success: true,
-      data: { botUsername, telegramUserId: telegramUserId.trim(), connected: true },
+      data: { botUsername, telegramUserId: telegramUserId.trim(), connected: true, webhookRegistered },
     }
   },
 }
