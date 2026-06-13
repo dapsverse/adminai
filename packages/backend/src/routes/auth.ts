@@ -44,7 +44,7 @@ authRouter.post('/register', async (c) => {
 
   let user
   try {
-    ;[user] = await db.insert(users).values({ email, passwordHash, fullName, businessName }).returning()
+    ;[user] = await db.insert(users).values({ email, passwordHash, fullName, businessName, onboardingState: { step: 'ACTIVE' } }).returning()
   } catch (err: any) {
     if (err.code === '23505') {
       return c.json({ error: 'Email already registered' }, 409)

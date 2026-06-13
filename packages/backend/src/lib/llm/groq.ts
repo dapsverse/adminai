@@ -12,6 +12,10 @@ function normalizeSchema(schema: Record<string, unknown>): Record<string, unknow
       result[key] = value
     }
   }
+  // Groq requires explicit 'required' array on object schemas
+  if (result.type === 'object' && !('required' in result)) {
+    result.required = []
+  }
   return result
 }
 

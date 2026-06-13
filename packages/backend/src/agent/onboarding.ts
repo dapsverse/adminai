@@ -13,7 +13,7 @@ export async function getOnboardingState(userId: string): Promise<OnboardingStat
     .where(eq(users.id, userId))
     .limit(1)
 
-  if (!user?.onboardingState) return { step: 'OFFER_INTEGRATIONS' }
+  if (!user?.onboardingState) return { step: 'ACTIVE' }
   return user.onboardingState as OnboardingState
 }
 
