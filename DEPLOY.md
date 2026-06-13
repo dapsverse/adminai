@@ -53,7 +53,7 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
    |-----|-------|
    | `DATABASE_URL` | Connection string Neon dari Step 1 |
    | `JWT_SECRET` | String random 32 karakter (generate di https://generate-secret.vercel.app/32) |
-   | `GEMINI_API_KEY` | API key Gemini kamu |
+   | `GROQ_API_KEY` | API key Groq kamu |
    | `NODE_ENV` | `production` |
 
    > Untuk SMTP (laporan via email), tambahkan juga:

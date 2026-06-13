@@ -1,13 +1,13 @@
-import { GeminiProvider } from './gemini'
+import { GroqProvider } from './groq'
 import type { LlmProvider } from './types'
 
 let provider: LlmProvider | null = null
 
 export function getLlmProvider(): LlmProvider {
   if (!provider) {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) throw new Error('GEMINI_API_KEY is not set')
-    provider = new GeminiProvider(apiKey)
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) throw new Error('GROQ_API_KEY is not set')
+    provider = new GroqProvider(apiKey)
   }
   return provider
 }

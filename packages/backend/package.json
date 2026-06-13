@@ -12,12 +12,12 @@
     "db:migrate:test": "DATABASE_URL=$DATABASE_URL_TEST tsx src/db/migrate.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@hono/node-server": "^1.13",
     "@paralleldrive/cuid2": "^2.2",
     "bcrypt": "^5.1",
     "dotenv": "^16.4",
     "drizzle-orm": "^0.38",
+    "groq-sdk": "^1.2.1",
     "hono": "^4.6",
     "jose": "^5.9",
     "node-cron": "^4.2.1",
