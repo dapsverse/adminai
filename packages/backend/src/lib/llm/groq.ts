@@ -1,6 +1,20 @@
 import Groq from 'groq-sdk'
 import type { LlmMessage, LlmTool, LlmResponse, LlmProvider } from './types'
 
+function normalizeSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'type' && typeof value === 'string') {
+      result[key] = value.toLowerCase()
+    } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = normalizeSchema(value as Record<string, unknown>)
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 export class GroqProvider implements LlmProvider {
   private readonly client: Groq
   private readonly modelName: string
@@ -33,7 +47,7 @@ export class GroqProvider implements LlmProvider {
         function: {
           name: t.name,
           description: t.description,
-          parameters: t.parameters,
+          parameters: normalizeSchema(t.parameters),
         },
       }))
       params.tool_choice = 'auto'
