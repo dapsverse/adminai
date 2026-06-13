@@ -54,8 +54,15 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
    | `DATABASE_URL` | Connection string Neon dari Step 1 |
    | `JWT_SECRET` | String random 32 karakter (generate di https://generate-secret.vercel.app/32) |
    | `GROQ_API_KEY` | API key Groq kamu |
-   | `WEBHOOK_BASE_URL` | URL backend Render, misal: `https://adminai-backend.onrender.com` |
+   | `WEBHOOK_BASE_URL` | `https://adminai-backend.onrender.com` (URL backend Render ini sendiri) |
+   | `GOOGLE_CLIENT_ID` | Client ID dari Google Cloud Console |
+   | `GOOGLE_CLIENT_SECRET` | Client Secret dari Google Cloud Console |
+   | `GOOGLE_REDIRECT_URI` | `https://adminai-backend.onrender.com/auth/google/callback` |
+   | `FRONTEND_URL` | URL Vercel frontend kamu, misal: `https://adminai-xxxx.vercel.app` |
    | `NODE_ENV` | `production` |
+
+   > **Catatan:** `FRONTEND_URL` dipakai untuk redirect setelah user approve Gmail OAuth.
+   > Isi dulu dengan URL Vercel setelah Step 4 selesai, lalu update di Render → Environment.
 
    > Untuk SMTP (laporan via email), tambahkan juga:
    > `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`
@@ -76,10 +83,27 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
 
 ---
 
-## Step 3 — Update URL Backend di Frontend
+## Step 3 — Authorize Redirect URI Production di Google Cloud Console
+
+> Langkah ini wajib agar fitur "Connect Gmail" berfungsi di production.
+
+1. Buka https://console.cloud.google.com dan masuk ke project yang dipakai
+2. Navigasi ke **APIs & Services** → **Credentials**
+3. Klik nama OAuth 2.0 Client ID yang kamu buat sebelumnya
+4. Di bagian **Authorized redirect URIs**, klik **Add URI**
+5. Tambahkan:
+   ```
+   https://adminai-backend.onrender.com/auth/google/callback
+   ```
+   > Ganti `adminai-backend` dengan nama service Render kamu jika berbeda.
+6. Klik **Save**
+
+---
+
+## Step 4 — Update URL Backend di Frontend
 
 1. Buka file `packages/frontend/vercel.json` di repo lokal
-2. Ganti `RENDER_BACKEND_URL` dengan URL backend dari Step 2 (tanpa `https://`):
+2. Ganti URL backend dengan URL backend dari Step 2 (tanpa `https://`):
    ```json
    {
      "rewrites": [
@@ -99,7 +123,7 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
 
 ---
 
-## Step 4 — Deploy Frontend ke Vercel
+## Step 5 — Deploy Frontend ke Vercel
 
 1. Buka https://vercel.com dan buat akun (gratis, login via GitHub)
 2. Klik **Add New...** → **Project**
@@ -127,7 +151,7 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
 
 ---
 
-## Step 5 — Setup UptimeRobot (Keep-alive Render)
+## Step 6 — Setup UptimeRobot (Keep-alive Render)
 
 > Render free tier mematikan server setelah 15 menit idle. UptimeRobot akan ping setiap 5 menit agar server tidak pernah tidur.
 
