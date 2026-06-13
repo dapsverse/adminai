@@ -8,6 +8,7 @@ import { markInvoicePaidTool } from './mark-invoice-paid'
 import { scheduleReportTool } from './schedule-report'
 import { listReportsTool } from './list-reports'
 import { deleteReportTool } from './delete-report'
+import { connectTelegramTool } from './connect-telegram'
 
 export function registerTools(): void {
   registerTool(createTransactionTool)
@@ -19,4 +20,5 @@ export function registerTools(): void {
   registerTool(scheduleReportTool)
   registerTool(listReportsTool)
   registerTool(deleteReportTool)
+  registerTool(connectTelegramTool)
 }

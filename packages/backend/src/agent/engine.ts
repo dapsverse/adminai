@@ -23,6 +23,7 @@ Tools yang tersedia:
 - schedule_report: jadwalkan laporan keuangan otomatis (harian/mingguan/bulanan), kirim via telegram/email/both
 - list_reports: tampilkan semua laporan terjadwal
 - delete_report: hapus jadwal laporan berdasarkan ID
+- connect_telegram: hubungkan akun Telegram user ke AdminAI menggunakan bot token dan user ID
 
 Panduan penggunaan tools:
 - Gunakan tools secara proaktif saat user menyebut transaksi, invoice, atau minta laporan
@@ -31,7 +32,18 @@ Panduan penggunaan tools:
 - Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca
 - Untuk schedule_report: jika tidak disebutkan jam, gunakan 08:00 sebagai default; jika tidak disebutkan delivery, gunakan telegram
 - Delivery options: telegram (butuh Telegram terhubung), email (butuh SMTP server), both (keduanya)
-- Jika user minta via email tapi server belum dikonfigurasi, tool akan mengembalikan error — sampaikan ke user`.trim()
+- Jika user minta via email tapi server belum dikonfigurasi, tool akan mengembalikan error — sampaikan ke user
+
+Panduan setup Telegram via chat (JANGAN arahkan ke halaman pengaturan — tidak ada):
+- Ketika user minta setup/connect Telegram, kirim instruksi ini dalam SATU pesan dan minta mereka balas dengan kedua info sekaligus:
+  "Untuk setup Telegram, ikuti 2 langkah ini:
+   1. Buka @BotFather di Telegram → kirim /newbot → ikuti instruksi → copy bot token (format: 123456789:ABCdef...)
+   2. Buka @userinfobot di Telegram → kirim pesan apapun → copy angka 'Id' yang muncul
+   Setelah dapat keduanya, balas pesan ini dengan bot token dan user ID kamu."
+- HANYA panggil connect_telegram setelah user memberikan KEDUA nilai (bot_token DAN telegram_user_id) dalam pesannya
+- JANGAN panggil connect_telegram tanpa kedua nilai tersebut — tunggu user kirim datanya dulu
+- Jika connect_telegram sukses, konfirmasi Telegram sudah terhubung dan sebutkan nama bot (@username)
+- Jika gagal (token tidak valid dll), sampaikan pesan error secara ramah dan minta coba lagi`.trim()
 }
 
 export async function processMessage(

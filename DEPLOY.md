@@ -54,6 +54,7 @@ Stack: **Neon** (PostgreSQL) + **Render** (Backend) + **Vercel** (Frontend) + **
    | `DATABASE_URL` | Connection string Neon dari Step 1 |
    | `JWT_SECRET` | String random 32 karakter (generate di https://generate-secret.vercel.app/32) |
    | `GROQ_API_KEY` | API key Groq kamu |
+   | `WEBHOOK_BASE_URL` | URL backend Render, misal: `https://adminai-backend.onrender.com` |
    | `NODE_ENV` | `production` |
 
    > Untuk SMTP (laporan via email), tambahkan juga:
