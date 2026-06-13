@@ -15,6 +15,13 @@
       "when": 1781151216517,
       "tag": "0001_ancient_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781330000000,
+      "tag": "0002_google_oauth",
+      "breakpoints": true
     }
   ]
 }

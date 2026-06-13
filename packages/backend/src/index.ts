@@ -5,6 +5,7 @@ import { authRouter } from './routes/auth'
 import { chatRouter } from './routes/chat'
 import { telegramRouter } from './routes/telegram'
 import { reportsRouter } from './routes/reports'
+import { googleAuthRouter } from './routes/google-auth'
 import { registerTools } from './agent/tools/register'
 import { initScheduler } from './lib/report-scheduler'
 
@@ -21,6 +22,7 @@ app.route('/auth', authRouter)
 app.route('/chat', chatRouter)
 app.route('/', telegramRouter)
 app.route('/', reportsRouter)
+app.route('/', googleAuthRouter)
 
 app.get('/health', (c) => c.json({ ok: true }))
 

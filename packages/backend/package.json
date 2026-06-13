@@ -17,6 +17,7 @@
     "bcrypt": "^5.1",
     "dotenv": "^16.4",
     "drizzle-orm": "^0.38",
+    "googleapis": "^173.0.0",
     "groq-sdk": "^1.2.1",
     "hono": "^4.6",
     "jose": "^5.9",

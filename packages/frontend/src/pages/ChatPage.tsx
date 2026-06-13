@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/auth'
 import { useChat } from '../hooks/useChat'
 import { ChatMessage } from '../components/ChatMessage'
@@ -10,6 +10,20 @@ export function ChatPage() {
   const navigate = useNavigate()
   const { messages, loading, error, send, historyLoaded } = useChat()
   const [input, setInput] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (searchParams.get('email_connected')) {
+      setToast('Gmail berhasil terhubung!')
+      setSearchParams({})
+      setTimeout(() => setToast(null), 4000)
+    } else if (searchParams.get('email_error')) {
+      setToast('Gagal menghubungkan Gmail. Coba lagi.')
+      setSearchParams({})
+      setTimeout(() => setToast(null), 4000)
+    }
+  }, [])
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -62,6 +76,13 @@ export function ChatPage() {
           </button>
         </div>
       </header>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-full shadow-lg z-50">
+          {toast}
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
