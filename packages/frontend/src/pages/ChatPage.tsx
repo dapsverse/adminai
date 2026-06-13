@@ -11,6 +11,14 @@ export function ChatPage() {
   const { messages, loading, error, send, historyLoaded } = useChat()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+  }, [input])
 
   const handleLogout = () => {
     clearAuth()
@@ -22,6 +30,15 @@ export function ChatPage() {
     if (!input.trim()) return
     send(input)
     setInput('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (!input.trim() || loading) return
+      send(input)
+      setInput('')
+    }
   }
 
   useEffect(() => {
@@ -82,13 +99,16 @@ export function ChatPage() {
       {/* Input bar */}
       <div className="bg-white border-t border-gray-200 px-4 py-4 flex-shrink-0">
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl mx-auto">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Ketik pesan..."
             disabled={loading}
-            className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+            rows={1}
+            className="flex-1 rounded-2xl border border-gray-300 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none"
+            style={{ maxHeight: '120px', overflowY: 'auto' }}
           />
           <button
             type="submit"
