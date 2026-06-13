@@ -6,9 +6,24 @@ import { loadContext, saveMessage } from './context'
 import { getOnboardingState, setOnboardingStep, buildOnboardingMessage } from './onboarding'
 import { getAllTools, getTool } from './tools'
 
-function buildSystemPrompt(fullName: string, businessName: string): string {
+interface Integrations {
+  gmailConnected: boolean
+  gmailAddress: string | null
+  telegramConnected: boolean
+}
+
+function buildSystemPrompt(fullName: string, businessName: string, integrations: Integrations): string {
+  const gmailStatus = integrations.gmailConnected
+    ? `Terhubung (${integrations.gmailAddress})`
+    : 'Belum terhubung'
+  const telegramStatus = integrations.telegramConnected ? 'Terhubung' : 'Belum terhubung'
+
   return `Kamu adalah AdminAI, asisten AI untuk usaha kecil.
 Pengguna: ${fullName} | Bisnis: ${businessName}
+
+Status integrasi saat ini:
+- Gmail: ${gmailStatus}
+- Telegram: ${telegramStatus}
 
 Tugasmu: membantu mengelola keuangan dan invoice ${businessName} melalui percakapan.
 Jawab dalam Bahasa Indonesia yang santai dan ramah.
@@ -25,6 +40,8 @@ Tools yang tersedia:
 - delete_report: hapus jadwal laporan berdasarkan ID
 - connect_telegram: hubungkan akun Telegram user ke AdminAI menggunakan bot token dan user ID
 - connect_email: generate link OAuth untuk menghubungkan Gmail user ke AdminAI
+- read_emails: baca/cari email dari Gmail user yang sudah terhubung
+- send_email: kirim email via Gmail user yang sudah terhubung
 
 Panduan penggunaan tools:
 - Gunakan tools secara proaktif saat user menyebut transaksi, invoice, atau minta laporan
@@ -32,13 +49,19 @@ Panduan penggunaan tools:
 - Semua amount dalam Rupiah (IDR), bilangan bulat
 - Setelah berhasil, konfirmasi ke user apa yang sudah dicatat dengan format yang mudah dibaca
 - Untuk schedule_report: jika tidak disebutkan jam, gunakan 08:00 sebagai default; jika tidak disebutkan delivery, gunakan telegram
-- Delivery options: telegram (butuh Telegram terhubung), email (butuh SMTP server), both (keduanya)
-- Jika user minta via email tapi server belum dikonfigurasi, tool akan mengembalikan error — sampaikan ke user
+- Delivery options: telegram (butuh Telegram terhubung), email (butuh Gmail terhubung), both (keduanya)
+
+Panduan Gmail (PENTING):
+- Lihat status integrasi di atas untuk tahu apakah Gmail sudah terhubung
+- Jika Gmail SUDAH terhubung: langsung gunakan read_emails atau send_email TANPA bertanya apakah sudah terhubung
+- Jika user minta "cek email", "baca email", "email dari X": panggil read_emails dengan query yang sesuai
+- Jika user minta "kirim email ke X": panggil send_email dengan to, subject, dan body
+- Jika Gmail BELUM terhubung dan user minta fitur email: panggil connect_email, lalu sampaikan link ke user
 
 Panduan connect Gmail via chat:
 - Ketika user minta connect/hubungkan email atau Gmail, langsung panggil connect_email tool (tidak perlu tanya apapun dulu)
-- Jika sukses, tool mengembalikan authUrl — sampaikan ke user dengan format: "Klik link ini untuk menghubungkan Gmail kamu: [URL]"
-- Setelah user klik dan approve, Gmail mereka otomatis terhubung dan kamu bisa kirim laporan via Gmail mereka
+- Jika sukses, tool mengembalikan authUrl — sampaikan ke user: "Klik link ini untuk menghubungkan Gmail kamu: [URL]"
+- Setelah user klik dan approve, Gmail mereka otomatis terhubung
 
 Panduan setup Telegram via chat (JANGAN arahkan ke halaman pengaturan — tidak ada):
 - Ketika user minta setup/connect Telegram, kirim instruksi ini dalam SATU pesan dan minta mereka balas dengan kedua info sekaligus:
@@ -58,7 +81,13 @@ export async function processMessage(
   channel: 'web' | 'telegram' = 'web'
 ): Promise<string> {
   const [user] = await db
-    .select({ fullName: users.fullName, businessName: users.businessName })
+    .select({
+      fullName: users.fullName,
+      businessName: users.businessName,
+      googleEmail: users.googleEmail,
+      googleAccessToken: users.googleAccessToken,
+      telegramUserId: users.telegramUserId,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
@@ -73,10 +102,16 @@ export async function processMessage(
     reply = buildOnboardingMessage(user.fullName, user.businessName)
     await setOnboardingStep(userId, 'ACTIVE')
   } else {
+    const integrations: Integrations = {
+      gmailConnected: !!(user.googleEmail && user.googleAccessToken),
+      gmailAddress: user.googleEmail,
+      telegramConnected: !!user.telegramUserId,
+    }
+
     const history = await loadContext(userId)
     const tools = getAllTools()
     const llm = getLlmProvider()
-    const systemPrompt = buildSystemPrompt(user.fullName, user.businessName)
+    const systemPrompt = buildSystemPrompt(user.fullName, user.businessName, integrations)
 
     const response = await llm.chat(
       systemPrompt,
@@ -104,7 +139,8 @@ export async function processMessage(
             `Data dari ${tc.name}: ${JSON.stringify(result.data ?? result.error)}\nBerikan respons informatif kepada pengguna.`
           )
           reply = followUp.content ?? 'Maaf, tidak ada respons.'
-        } catch {
+        } catch (err) {
+          console.error(`[engine] Tool ${tc.name} failed:`, err)
           reply = 'Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi.'
         }
       }

@@ -10,6 +10,8 @@ import { listReportsTool } from './list-reports'
 import { deleteReportTool } from './delete-report'
 import { connectTelegramTool } from './connect-telegram'
 import { connectEmailTool } from './connect-email'
+import { readEmailsTool } from './read-emails'
+import { sendEmailTool } from './send-email'
 
 export function registerTools(): void {
   registerTool(createTransactionTool)
@@ -23,4 +25,6 @@ export function registerTools(): void {
   registerTool(deleteReportTool)
   registerTool(connectTelegramTool)
   registerTool(connectEmailTool)
+  registerTool(readEmailsTool)
+  registerTool(sendEmailTool)
 }

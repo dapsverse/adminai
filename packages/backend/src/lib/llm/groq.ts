@@ -23,7 +23,7 @@ export class GroqProvider implements LlmProvider {
   private readonly client: Groq
   private readonly modelName: string
 
-  constructor(apiKey: string, modelName = 'llama-3.3-70b-versatile') {
+  constructor(apiKey: string, modelName = 'meta-llama/llama-4-scout-17b-16e-instruct') {
     this.client = new Groq({ apiKey })
     this.modelName = modelName
   }
@@ -57,7 +57,35 @@ export class GroqProvider implements LlmProvider {
       params.tool_choice = 'auto'
     }
 
-    const response = await this.client.chat.completions.create(params)
+    let response: Groq.Chat.Completions.ChatCompletion
+    try {
+      response = await this.client.chat.completions.create(params)
+    } catch (err) {
+      // Llama sometimes outputs native <function=...> format which Groq rejects with tool_use_failed.
+      // Parse the failed_generation field to still execute the tool.
+      const apiErr = err as { status?: number; error?: { code?: string; failed_generation?: string } }
+      if (apiErr?.error?.code === 'tool_use_failed' && apiErr.error.failed_generation) {
+        const match = apiErr.error.failed_generation.match(/<function=(\w+)\(([\s\S]*?)\)<\/function>/)
+        if (match) {
+          try {
+            return {
+              content: null,
+              toolCalls: [{ name: match[1], args: JSON.parse(match[2]) as Record<string, unknown> }],
+            }
+          } catch {
+            // args not parseable — fall through to throw
+          }
+        }
+      }
+      if (apiErr?.status === 429) {
+        return {
+          content: 'Maaf, layanan AI sedang kelebihan beban. Silakan coba beberapa menit lagi.',
+          toolCalls: [],
+        }
+      }
+      throw err
+    }
+
     const msg = response.choices[0].message
 
     if (msg.tool_calls && msg.tool_calls.length > 0) {
