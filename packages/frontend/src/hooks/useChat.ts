@@ -23,6 +23,22 @@ export function useChat() {
       .finally(() => setHistoryLoaded(true))
   }, [])
 
+  // Poll for new messages from Telegram (every 3s when idle)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (loading) return
+      apiFetch<{ messages: Message[] }>('/chat/history')
+        .then(data => {
+          setMessages(prev => {
+            if (data.messages.length === prev.length) return prev
+            return data.messages
+          })
+        })
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [loading])
+
   const send = useCallback(async (content: string) => {
     if (!content.trim() || loading) return
 
